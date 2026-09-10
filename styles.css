@@ -384,8 +384,25 @@ svg { display: block; }
 }
 @keyframes slide { from { transform: translateY(14px) } to { transform: translateY(0) } }
 .sheet-grab { width: 38px; height: 4px; border-radius: 999px; background: var(--line-2); margin: 0 auto 10px; flex: 0 0 auto; }
-.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: 0 0 auto; }
-.sheet-head h2 { font-size: 15px; font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex: 0 0 auto; }
+.sheet-head h2 { font-size: 15px; font-weight: 650; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Xem lại hoá đơn (OCR) ---------- */
+.bill-row { align-items: center; }
+.bill-row.is-off { opacity: 0.45; }
+.bill-row .entry-main { cursor: pointer; }
+.bill-qty { display: flex; align-items: center; gap: 3px; flex: 0 0 auto; }
+.bill-qty span { min-width: 20px; text-align: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.bill-qty .icon-btn { width: 26px; height: 26px; }
+.mini-chip {
+  border: 1px solid var(--line-2);
+  background: var(--input-bg);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--accent);
+  margin: 3px 4px 0 0;
+}
 .sheet-body { overflow-y: auto; margin-top: 10px; flex: 1 1 auto; -webkit-overflow-scrolling: touch; }
 .sheet-foot { flex: 0 0 auto; display: flex; gap: 8px; margin-top: 12px; }
 .sheet-foot .btn { flex: 1 1 0; }

@@ -1,5 +1,24 @@
 # Changelog — Nhật Ký Dinh Dưỡng
 
+## v1.1.0 — 2026-09-10
+
+### ✨ Mới
+
+- **📷 Chụp hoá đơn để điền nhanh** (change `add-bill-ocr`): chụp ảnh bill nhà hàng (hoặc chọn ảnh có sẵn) → nhận diện chữ tiếng Việt **ngay trên thiết bị** → tách dòng món → khớp thư viện → **màn xem lại** (sửa khẩu phần, đổi món, bỏ dòng, chọn nhóm bữa + giờ cho cả loạt) → xác nhận ghi một lần nhiều món. **Không tự động ghi** — OCR chỉ tạo bản nháp.
+- **Khớp món chịu lỗi dấu/chính tả**: bỏ dấu + chịu lỗi 1–2 ký tự mỗi từ (`Rau muôúg xào tỏi` → *Rau muống xào tỏi*), kèm guard không gán món 1 từ cho dòng nhiều từ (`Bò né` ≠ `Bơ`); món chưa có trong thư viện được đánh dấu để thêm mới tại chỗ.
+- **Số khẩu phần suy từ tiền**: ưu tiên `thành tiền ÷ đơn giá` có đối chiếu chéo với cột SL (cột SL hay bị đọc thành `4.5`/`11.`), không suy được thì mặc định 1.
+- **Lọc dòng rác của bill** kể cả khi OCR hỏng dấu: `Tôủg cộng`, `THANH. TOÁN`, `VAT`, tiêu đề, địa chỉ, SĐT, ngày giờ, lời cảm ơn.
+- **Tiền xử lý ảnh**: resize cạnh dài ≤1600px + ảnh xám + giãn tương phản percentile 2–98 → đo được confidence 85→89% và **sửa được dấu sai** (`cá tóc` → `cá lóc`).
+- **Tài nguyên OCR theo nhu cầu**: tải ~7MB ở lần dùng đầu rồi lưu trên máy (cache riêng `nhat-ky-dinh-duong-ocr-v1`) → các lần sau chạy offline; người không dùng tính năng không tải gì thêm.
+
+### 🔒 Riêng tư
+
+- Ảnh hoá đơn và chữ nhận diện **không rời khỏi thiết bị** — chỉ có request tài nguyên nhận diện, không có request nào mang ảnh/dữ liệu (đã kiểm bằng probe theo dõi network).
+
+### 🎨 UI
+
+- Dòng nháp trong màn xem lại: checkbox chọn/bỏ, chữ OCR (mờ) bên dưới tên món khớp, chip gợi ý món khác, nút ± khẩu phần, tổng kcal dự kiến; footer gọn 2 nút *Huỷ* / *Ghi N món*.
+
 ## v1.0.0 — 2026-09-10
 
 Bản MVP đầu tiên (change `add-meal-tracker-mvp`): PWA tĩnh ghi bữa ăn + mục tiêu dinh dưỡng.

@@ -6,7 +6,7 @@
    mục tiêu + macro) · meal_foods (món tự khai báo + yêu thích).
    ===================================================================== */
 
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v1.1.0';
 const KEY_LOG = 'meal_log';
 const KEY_CONFIG = 'meal_config';
 const KEY_FOODS = 'meal_foods';
@@ -82,8 +82,23 @@ const IC = {
   right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.5-2h7L17 8.5h3v10.5H4z"/><circle cx="12" cy="13.5" r="3.4"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>',
+  square: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>',
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19h14"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M7.5 9.5 12 5l4.5 4.5"/><path d="M5 19h14"/></svg>',
+};
+
+/* Hằng số OCR hoá đơn — xem openspec/changes/add-bill-ocr/design.md (D1/D2/D3) */
+const OCR = {
+  libPath: 'vendor/tesseract/tesseract.min.js',
+  workerPath: 'vendor/tesseract/worker.min.js',
+  corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.1.2/',
+  langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+  lang: 'vie',
+  maxEdge: 1600,     // cạnh dài tối đa đưa vào OCR
+  maxRows: 40,       // số dòng món tối đa giữ lại
+  matchMin: 0.45,    // ngưỡng tự gán món; dưới ngưỡng → để người dùng chọn
 };
 
 /* =========================== State =========================== */
@@ -104,6 +119,8 @@ const ST = {
   formErrors: {},     // lỗi theo trường (form hồ sơ)
   formMsg: '',        // lỗi tổng (form hồ sơ / macro / món)
   lastAdded: null,    // { key, id, foodId, meal } — để đổi nhóm bữa vừa thêm nhanh
+  bill: null,         // state tạm của luồng chụp hoá đơn (không lưu localStorage)
+  billPendingRow: null, // dòng đang chờ món tự khai báo mới
   lpFired: false,
   toastTimer: null,
 };
@@ -729,6 +746,7 @@ function closeModal() {
   ST.draft = null;
   ST.formMsgFood = '';
   ST.foodDraft = null;
+  ST.billPendingRow = null;
   const root = $('modalRoot');
   if (root) root.innerHTML = '';
 }
@@ -745,18 +763,20 @@ function showToast(msg) {
 }
 
 /* ---------- Sheet chọn món ---------- */
-function openPicker(meal) {
+function openPicker(meal, forRowId) {
   ST.query = '';
   ST.pickGroup = 'all';
-  openModal('pick', '', { meal: meal || inferMeal(nowHHMM()), mode: 'add' });
+  const forRow = forRowId || null;
+  openModal('pick', '', { meal: meal || inferMeal(nowHHMM()), mode: 'add', forRow: forRow });
   const root = $('modalRoot');
   const sheet = root.querySelector('.sheet');
   sheet.innerHTML = '<div class="sheet-grab"></div>' +
-    '<div class="sheet-head"><h2>Chọn món</h2>' +
+    '<div class="sheet-head"><h2>' + (forRow ? 'Chọn món cho dòng này' : 'Chọn món') + '</h2>' +
       '<button class="icon-btn" type="button" title="Đóng" onclick="closeModal()">' + IC.close + '</button></div>' +
     '<div class="search-box" style="margin-top:10px">' + IC.search +
       '<input id="pickSearch" type="search" placeholder="Tìm món (gõ không dấu cũng được)" autocomplete="off" oninput="onSearchInput(this.value)">' +
     '</div>' +
+    (forRow ? '' : '<button class="btn block" style="margin-top:8px" type="button" onclick="openBillCapture()">' + IC.camera + ' Chụp hoá đơn để điền nhanh</button>') +
     '<div class="sheet-body" id="pickerBody"></div>';
   renderPickerBody();
   const inp = $('pickSearch');
@@ -769,6 +789,8 @@ function setPickGroup(g) { ST.pickGroup = g; renderPickerBody(); }
 function renderPickerBody() {
   const body = $('pickerBody');
   if (!body) return;
+  const forRow = (ST.draft && ST.draft.forRow) || null;
+  const pickCall = (id) => forRow ? 'billAssignFood(\'' + esc(id) + '\')' : 'openPortion(\'' + esc(id) + '\',\'add\')';
   const picks = getQuickPicks(6);
   const filters = [{ id: 'all', label: 'Tất cả' }, { id: 'fav', label: '★ Yêu thích' }]
     .concat(GROUPS.map((g) => ({ id: g.id, label: g.label })));
@@ -778,7 +800,7 @@ function renderPickerBody() {
 
   const quickRow = (!ST.query && picks.length)
     ? '<div class="group-label">Món hay ăn</div><div class="chip-row">' + picks.map((p) =>
-        '<button class="chip" type="button" onclick="openPortion(\'' + esc(p.food.id) + '\',\'add\')">' + esc(p.food.name) +
+        '<button class="chip" type="button" onclick="' + pickCall(p.food.id) + '">' + esc(p.food.name) +
         ' <span class="chip-kcal">' + fmtInt(p.food.kcal) + '</span></button>').join('') + '</div>'
     : '';
 
@@ -797,7 +819,7 @@ function renderPickerBody() {
     listHtml = list.map((f) => {
       let head = '';
       if (f.group !== cur) { cur = f.group; head = '<div class="group-label">' + esc(GROUP_LABEL[f.group] || 'Khác') + '</div>'; }
-      return head + '<div class="pick-row" onclick="openPortion(\'' + esc(f.id) + '\',\'add\')">' +
+      return head + '<div class="pick-row" onclick="' + pickCall(f.id) + '">' +
         '<div class="entry-main"><div class="entry-name">' + esc(f.name) + '</div>' +
         '<div class="entry-sub">' + esc(f.unit) + (f.refGrams ? ' · ' + f.refGrams + 'g' : '') + ' · Đ' + fmt1(f.protein) + ' C' + fmt1(f.carb) + ' B' + fmt1(f.fat) + (f.custom ? ' · món của bạn' : '') + '</div></div>' +
         '<div class="pick-kcal">' + fmtInt(f.kcal) + '</div>' +
@@ -846,6 +868,7 @@ function renderPortionSheet(food) {
   const unit = food.unit || '1 phần';
   sheet.innerHTML = '<div class="sheet-grab"></div>' +
     '<div class="sheet-head"><h2>' + esc(food.name) + '</h2>' +
+      '<button class="icon-btn" type="button" title="Chụp hoá đơn" onclick="openBillCapture()">' + IC.camera + '</button>' +
       '<button class="icon-btn" type="button" title="Đóng" onclick="closeModal()">' + IC.close + '</button></div>' +
     '<div class="sheet-body">' +
       '<div class="hint" id="ptPreview"></div>' +
@@ -1085,10 +1108,21 @@ function saveCustomFood() {
     ST.customFoods.push(normalized);
   }
   saveFoods();
+  const pendingRow = ST.billPendingRow;
   ST.formMsgFood = '';
   ST.foodDraft = null;
   closeModal();
   render();
+  if (pendingRow && ST.bill) {
+    const row = ST.bill.rows.filter((r) => r.id === pendingRow)[0];
+    if (row) {
+      row.foodId = normalized.id;
+      row.include = true;
+      openBillSheet();
+      showToast('Đã thêm món "' + name + '" và gán vào dòng hoá đơn');
+      return;
+    }
+  }
   if (ST.modal && ST.modal.kind === 'pick') renderPickerBody();
   showToast(d.foodId ? 'Đã lưu món' : 'Đã thêm món "' + name + '"');
 }
@@ -1455,6 +1489,462 @@ function doImport() {
   showToast('Đã nhập ' + p.days + ' ngày · ' + p.entries + ' mục');
 }
 
+/* =========================== Chụp hoá đơn (OCR) ===========================
+   Nhận diện chạy hoàn toàn trên thiết bị: ảnh và chữ KHÔNG rời khỏi máy.
+   Bộ máy (vendor, cùng origin) + lõi wasm/dữ liệu tiếng Việt tải ở lần dùng đầu
+   rồi service worker cache lại để các lần sau chạy offline.  */
+
+let ocrLibPromise = null;
+let ocrEnginePromise = null;
+let ocrWorker = null;
+
+function loadOcrLib() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (!ocrLibPromise) {
+    ocrLibPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = OCR.libPath;
+      s.onload = () => (window.Tesseract ? resolve(window.Tesseract) : reject(new Error('ocr-lib')));
+      s.onerror = () => { ocrLibPromise = null; reject(new Error('ocr-lib')); };
+      document.head.appendChild(s);
+    });
+  }
+  return ocrLibPromise;
+}
+
+function loadOcrEngine() {
+  if (ocrWorker) return Promise.resolve(ocrWorker);
+  if (!ocrEnginePromise) {
+    ocrEnginePromise = (async () => {
+      await loadOcrLib();
+      const w = await window.Tesseract.createWorker(OCR.lang, 1, {
+        workerPath: OCR.workerPath,
+        corePath: OCR.corePath,
+        langPath: OCR.langPath,
+        logger: (m) => ocrProgressTick(m),
+      });
+      ocrWorker = w;
+      return w;
+    })();
+    ocrEnginePromise.catch(() => { ocrEnginePromise = null; });
+  }
+  return ocrEnginePromise;
+}
+
+function ocrProgressTick(m) {
+  if (!ST.bill || ST.bill.state !== 'ocr' || !m) return;
+  const isText = m.status === 'recognizing text';
+  const pct = isText ? Math.round((m.progress || 0) * 100) : null;
+  if (isText) ST.bill.progress = pct;
+  const bar = $('billBar');
+  const label = $('billProg');
+  if (bar && pct != null) bar.style.width = Math.max(4, pct) + '%';
+  if (label) {
+    if (pct != null) label.textContent = 'Đang đọc hoá đơn… ' + pct + '%';
+    else if (m.status === 'loading language traineddata') label.textContent = 'Đang tải dữ liệu tiếng Việt (lần đầu ~4MB)…';
+    else label.textContent = 'Đang chuẩn bị bộ nhận diện…';
+  }
+}
+
+/* Thu nhỏ 1600px + ảnh xám + giãn tương phản percentile 2–98 (giúp dấu tiếng Việt ổn hơn) */
+async function preprocessBillImage(file) {
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const scale = Math.min(1, OCR.maxEdge / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(bmp, 0, 0, w, h);
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < d.length; i += 4) hist[(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0]++;
+  const total = w * h, lo = total * 0.02, hi = total * 0.98;
+  let acc = 0, p2 = 0, p98 = 255;
+  for (let v = 0; v < 256; v++) {
+    acc += hist[v];
+    if (acc >= lo && !p2) p2 = v;
+    if (acc >= hi) { p98 = v; break; }
+  }
+  const range = Math.max(1, p98 - p2);
+  for (let i = 0; i < d.length; i += 4) {
+    const g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+    const v = clamp(((g - p2) / range) * 255, 0, 255) | 0;
+    d[i] = d[i + 1] = d[i + 2] = v;
+    d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  if (bmp.close) bmp.close();
+  return c;
+}
+
+function ocrErrorMessage(err) {
+  const msg = String((err && err.message) || err || '');
+  if (msg.indexOf('ocr-lib') >= 0 || /failed to fetch|network|Load failed|timeout/i.test(msg)) {
+    return 'Không tải được bộ nhận diện. Lần dùng đầu tiên cần mạng (khoảng 7MB) — kiểm tra kết nối rồi thử lại. Các lần sau đã lưu trên máy nên chạy được offline.';
+  }
+  if (/image|bitmap|decode/i.test(msg)) {
+    return 'Không đọc được ảnh này. Thử chọn ảnh khác (JPG/PNG) hoặc chụp lại rõ hơn.';
+  }
+  return 'Không nhận diện được hoá đơn (' + esc(msg.slice(0, 80)) + '). Bạn vẫn có thể ghi món thủ công.';
+}
+
+function openBillCapture() {
+  const inp = $('billFile');
+  if (!inp) return;
+  inp.value = '';
+  inp.click();
+}
+
+function onBillFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.type && !/^image\//.test(file.type)) { showToast('Tệp đã chọn không phải ảnh'); return; }
+  startBillOcr(file);
+}
+
+async function startBillOcr(file) {
+  const b = {
+    state: 'prep', rows: [], progress: 0, error: null, conf: 0, ms: 0,
+    meal: inferMeal(nowHHMM()),
+    time: isToday(ST.dateKey) ? floorTo5(nowHHMM()) : '12:00',
+  };
+  ST.bill = b;
+  openModal('bill', '', null);
+  renderBillSheet();
+  try {
+    const canvas = await preprocessBillImage(file);
+    if (ST.bill !== b) return;
+    b.state = 'ocr';
+    renderBillSheet();
+    const worker = await loadOcrEngine();
+    if (ST.bill !== b) return;
+    const t0 = Date.now();
+    const out = await worker.recognize(canvas);
+    if (ST.bill !== b) return;
+    b.ms = Date.now() - t0;
+    b.conf = (out && out.data && out.data.confidence) || 0;
+    b.rows = buildBillRows((out && out.data && out.data.text) || '');
+    b.state = b.rows.length ? 'review' : 'empty';
+  } catch (err) {
+    if (ST.bill !== b) return;
+    b.state = 'error';
+    /* Bộ máy chưa lên được ⇒ lỗi tài nguyên (lần đầu cần mạng), không phải lỗi ảnh */
+    b.error = ocrWorker ? ocrErrorMessage(err) : ('Không tải được bộ nhận diện. Lần dùng đầu tiên cần mạng (khoảng 7MB) — kiểm tra kết nối rồi thử lại. Các lần sau đã lưu trên máy nên chạy được offline.');
+  }
+  renderBillSheet();
+}
+
+function billClose() {
+  ST.bill = null;
+  ST.billPendingRow = null;
+  closeModal();
+}
+
+function openBillSheet() {
+  if (!ST.bill) { closeModal(); return; }
+  openModal('bill', '', null);
+  renderBillSheet();
+}
+
+function billRowsHtml(b) {
+  const total = b.rows.reduce((s, r) => {
+    if (!r.include || !r.foodId) return s;
+    const f = foodById(r.foodId);
+    return s + (f ? Math.round(f.kcal * r.qty) : 0);
+  }, 0);
+  const on = b.rows.filter((r) => r.include).length;
+  const unassigned = b.rows.filter((r) => r.include && !r.foodId).length;
+  const rowsHtml = b.rows.map((r) => {
+    const food = r.foodId ? foodById(r.foodId) : null;
+    const kcal = food ? Math.round(food.kcal * r.qty) : 0;
+    const alts = (r.candidates || []).filter((c) => c.id !== r.foodId).slice(0, 2);
+    return '<div class="pick-row bill-row' + (r.include ? '' : ' is-off') + '">' +
+      '<button class="icon-btn' + (r.include ? ' accent' : '') + '" type="button" title="' + (r.include ? 'Bỏ dòng này' : 'Chọn dòng này') + '" onclick="billToggle(\'' + esc(r.id) + '\')">' + (r.include ? IC.check : IC.square) + '</button>' +
+      '<div class="entry-main" onclick="billPick(\'' + esc(r.id) + '\')" title="Chọn/đổi món cho dòng này">' +
+        (food
+          ? '<div class="entry-name">' + esc(food.name) + '</div>'
+          : '<div class="entry-name" style="color:var(--warn)">Chưa gán món — chạm để chọn</div>') +
+        '<div class="entry-sub">OCR: “' + esc(r.raw) + '”</div>' +
+        (alts.length
+          ? '<div class="entry-sub">Gợi ý: ' + alts.map((c) => '<button class="mini-chip" type="button" onclick="event.stopPropagation();billUseCandidate(\'' + esc(r.id) + '\',\'' + esc(c.id) + '\')">' + esc(c.name) + '</button>').join(' ') + '</div>'
+          : '') +
+        (!food
+          ? '<div class="entry-sub"><button class="mini-chip" type="button" onclick="event.stopPropagation();billAddCustom(\'' + esc(r.id) + '\')">＋ Thêm món tự khai báo</button></div>'
+          : '') +
+      '</div>' +
+      '<div class="bill-qty">' +
+        '<button class="icon-btn" type="button" title="Giảm khẩu phần" onclick="billQty(\'' + esc(r.id) + '\',-0.5)">−</button>' +
+        '<span>' + fmt1(r.qty) + '</span>' +
+        '<button class="icon-btn" type="button" title="Tăng khẩu phần" onclick="billQty(\'' + esc(r.id) + '\',0.5)">+</button>' +
+      '</div>' +
+      '<div class="pick-kcal">' + (food ? fmtInt(kcal) : '—') + '</div>' +
+    '</div>';
+  }).join('');
+  return '<div class="hint">Đọc được <b>' + b.rows.length + '</b> dòng món' +
+    (b.conf ? ' · độ tin cậy ' + Math.round(b.conf) + '%' : '') +
+    ' · đã chọn <b>' + on + '</b> dòng · tổng dự kiến <b>' + fmtInt(total) + ' kcal</b>' +
+    (unassigned ? '<br><span style="color:var(--warn)">' + unassigned + ' dòng chưa gán món sẽ không được ghi</span>' : '') + '</div>' +
+    '<div class="field" style="margin-top:10px"><label>Nhóm bữa cho cả loạt</label><div class="seg">' +
+      MEALS.map((m) => '<button type="button" class="' + (b.meal === m.id ? 'is-on' : '') + '" onclick="billMeal(\'' + m.id + '\')">' + m.emoji + ' ' + esc(m.label) + '</button>').join('') +
+    '</div></div>' +
+    '<div class="field"><label>Giờ ghi (bước 5 phút · ngày ' + fmtDateVN(ST.dateKey) + ')</label>' +
+      '<input type="time" id="billTime" step="300" value="' + esc(b.time) + '" onchange="billSetTime()"></div>' +
+    '<div class="divider"></div>' + rowsHtml;
+}
+
+function renderBillSheet() {
+  const b = ST.bill;
+  const root = $('modalRoot');
+  const sheet = root && root.querySelector('.sheet');
+  if (!b || !sheet) return;
+  let body;
+  if (b.state === 'prep' || b.state === 'ocr') {
+    body = '<div class="hint">Đang đọc hoá đơn — ảnh chỉ được xử lý trên máy bạn, không gửi đi đâu cả.</div>' +
+      '<div class="bar" style="margin-top:12px"><i id="billBar" style="width:6%;background:var(--accent)"></i></div>' +
+      '<div class="tiny muted" style="margin-top:8px" id="billProg">Đang chuẩn bị…</div>' +
+      '<div class="tiny muted" style="margin-top:10px">Lần đầu dùng cần tải bộ nhận diện (~7MB) rồi lưu trên máy; các lần sau chạy offline.</div>';
+  } else if (b.state === 'error') {
+    body = '<div class="err-box">' + esc(b.error) + '</div>' +
+      '<div class="hint">Bạn vẫn ghi món thủ công bình thường.</div>';
+  } else if (b.state === 'empty') {
+    body = '<div class="empty-state"><b>Không tìm thấy dòng món nào</b>' +
+      'Bill viết tay hoặc bill chỉ ghi tổng tiền thì OCR chịu. Thử chụp lại gần hơn / đủ sáng, hoặc thêm món thủ công.</div>';
+  } else {
+    body = billRowsHtml(b);
+  }
+  let foot = '';
+  if (b.state === 'review') {
+    const on = b.rows.filter((r) => r.include && r.foodId).length;
+    foot = '<button class="btn" type="button" onclick="billClose()">Huỷ</button>' +
+      '<button class="btn primary" type="button" onclick="billConfirm()"' + (on ? '' : ' disabled') + '>Ghi ' + on + ' món</button>';
+  } else if (b.state === 'error' || b.state === 'empty') {
+    foot = '<button class="btn" type="button" onclick="billClose()">Đóng</button>' +
+      '<button class="btn primary" type="button" onclick="openBillCapture()">Chụp lại</button>';
+  }
+  sheet.innerHTML = '<div class="sheet-grab"></div>' +
+    '<div class="sheet-head"><h2>' + (b.state === 'review' ? 'Xem lại hoá đơn' : 'Chụp hoá đơn') + '</h2>' +
+      '<button class="icon-btn" type="button" title="Đóng" onclick="billClose()">' + IC.close + '</button></div>' +
+    '<div class="sheet-body">' + body + '</div>' +
+    (foot ? '<div class="sheet-foot">' + foot + '</div>' : '');
+}
+
+function billToggle(id) {
+  const r = ST.bill && ST.bill.rows.filter((x) => x.id === id)[0];
+  if (!r) return;
+  r.include = !r.include;
+  renderBillSheet();
+}
+function billQty(id, delta) {
+  const r = ST.bill && ST.bill.rows.filter((x) => x.id === id)[0];
+  if (!r) return;
+  r.qty = clamp(Math.round((r.qty + delta) * 2) / 2, 0.5, 20);
+  renderBillSheet();
+}
+function billMeal(mealId) {
+  if (!ST.bill || MEAL_IDS.indexOf(mealId) < 0) return;
+  ST.bill.meal = mealId;
+  renderBillSheet();
+}
+function billSetTime() {
+  const inp = $('billTime');
+  if (!inp || !ST.bill) return;
+  let t = HHMM.test(inp.value) ? floorTo5(inp.value) : floorTo5(nowHHMM());
+  if (isToday(ST.dateKey) && hhmmToMin(t) > hhmmToMin(nowHHMM())) {
+    t = floorTo5(nowHHMM());
+    showToast('Không thể chọn thời gian trong tương lai');
+  }
+  ST.bill.time = t;
+  inp.value = t;
+}
+function billPick(rowId) {
+  const r = ST.bill && ST.bill.rows.filter((x) => x.id === rowId)[0];
+  if (!r) return;
+  openPicker(null, rowId);
+}
+function billUseCandidate(rowId, foodId) {
+  const r = ST.bill && ST.bill.rows.filter((x) => x.id === rowId)[0];
+  if (!r || !foodById(foodId)) return;
+  r.foodId = foodId;
+  r.include = true;
+  renderBillSheet();
+}
+function billAssignFood(foodId) {
+  const rowId = ST.draft && ST.draft.forRow;
+  const food = foodById(foodId);
+  if (!rowId || !food || !ST.bill) { closeModal(); return; }
+  const r = ST.bill.rows.filter((x) => x.id === rowId)[0];
+  if (r) { r.foodId = food.id; r.include = true; }
+  openBillSheet();
+}
+function billAddCustom(rowId) {
+  const r = ST.bill && ST.bill.rows.filter((x) => x.id === rowId)[0];
+  if (!r) return;
+  ST.billPendingRow = rowId;
+  ST.foodDraft = { forId: null, values: { name: r.name } };
+  openCustomFood(null);
+}
+function billConfirm() {
+  const b = ST.bill;
+  if (!b) { closeModal(); return; }
+  const rows = b.rows.filter((r) => r.include && r.foodId && foodById(r.foodId));
+  const skipped = b.rows.filter((r) => r.include && !r.foodId).length;
+  if (!rows.length) { showToast('Chưa dòng nào được gán món'); return; }
+  let kcal = 0;
+  rows.forEach((r) => {
+    const en = addEntry(foodById(r.foodId), r.qty, b.meal, b.time, ST.dateKey);
+    kcal += en.kcal;
+  });
+  ST.bill = null;
+  ST.lastAdded = null;
+  closeModal();
+  render();
+  showToast('Đã ghi ' + rows.length + ' món · ' + fmtInt(kcal) + ' kcal' +
+    (skipped ? ' (bỏ qua ' + skipped + ' dòng chưa gán món)' : ''));
+}
+
+/* ---------- Đọc dòng hoá đơn ---------- */
+/* Bỏ tiêu đề/footer/tổng tiền: so khớp MỜ theo từ trên chữ đã bỏ dấu, vì OCR hay
+   làm hỏng dấu câu ("THANH. TOÁN", "Tôủg cộng") — substring thuần sẽ trượt. */
+const BILL_SKIP_WORDS = [
+  'tong cong', 'tong', 'vat', 'gtgt', 'thue', 'thanh toan', 'tien mat', 'tien thua',
+  'tien khach', 'cam on', 'dia chi', 'dc', 'dien thoai', 'sdt', 'hotline', 'ngay',
+  'nhan vien', 'thu ngan', 'quy khach', 'hoa don', 'ma don', 'so phieu', 'khu vuc',
+  'in luc', 'nha hang', 'cong ty', 'tnhh', 'chi nhanh', 'ten mon', 'don gia', 'so luong',
+  'khach hang', 'phuc vu', 'so ban', 'ban so',
+];
+
+function looksLikeSkip(raw) {
+  const toks = norm(raw).replace(/[^a-z0-9]+/g, ' ').split(' ').filter((t) => t.length > 0);
+  if (!toks.length) return true;
+  for (let i = 0; i < BILL_SKIP_WORDS.length; i++) {
+    const phrase = BILL_SKIP_WORDS[i].split(' ').filter((t) => t.length > 1 || t === 'dc');
+    if (!phrase.length) continue;
+    let hit = 0;
+    phrase.forEach((pt) => { if (toks.some((t) => tokenSim(pt, t) >= 0.7)) hit += 1; });
+    if (hit >= Math.ceil(phrase.length * 0.6)) return true;
+  }
+  return false;
+}
+
+function moneyTokens(s) {
+  return (String(s).match(/\d{1,3}(?:[.,]\d{3})+/g) || []).map((x) => Number(x.replace(/[.,]/g, '')));
+}
+
+/* Tách "tên món" khỏi cụm số ở cuối dòng */
+function splitBillLine(line) {
+  const toks = String(line).replace(/\s+/g, ' ').trim().split(' ');
+  let cut = toks.length;
+  while (cut > 0 && /^[xX*]?[\d.,]+$/.test(toks[cut - 1])) cut--;
+  const tail = toks.slice(cut).join(' ');
+  const name = toks.slice(0, cut).join(' ').replace(/^(\d{1,3})\s*[.)]\s*/, '').replace(/[\s.\-–:]+$/, '').trim();
+  const smalls = (tail.match(/(?:^|\s)[xX]?(\d{1,3}(?:[.,]\d)?)(?=\s|$)/g) || [])
+    .map((x) => Number(x.trim().replace(/^[xX]/, '').replace(',', '.')))
+    .filter((n) => n > 0);
+  return { name: name, money: moneyTokens(tail), smalls: smalls };
+}
+
+/* Số khẩu phần: tin tỉ lệ thành tiền ÷ đơn giá hơn cột SL (cột số hay bị OCR làm hỏng) */
+function inferQty(p) {
+  const n = p.money;
+  let qRatio = null;
+  if (n.length >= 2) {
+    const unit = n[n.length - 2], total = n[n.length - 1];
+    if (unit >= 500 && total > 0) {
+      const r = total / unit;
+      if (r >= 0.5 && r <= 20) {
+        const snapped = Math.round(r * 2) / 2;
+        if (Math.abs(r - snapped) <= 0.15) qRatio = round1(snapped);
+      }
+    }
+  }
+  const small = (p.smalls || []).filter((v) => v >= 0.5 && v <= 20).sort((a, b) => (a % 1 === 0 ? -1 : 1) - (b % 1 === 0 ? -1 : 1))[0] || null;
+  const unit = n.length >= 2 ? n[n.length - 2] : 0;
+  const total = n.length >= 1 ? n[n.length - 1] : 0;
+  const smallOk = small != null && unit > 0 && total > 0 && Math.abs(unit * small - total) <= 0.15 * total;
+  if (qRatio != null && smallOk) {
+    /* cả hai đều hợp lý → chọn giá trị "tròn" hơn */
+    const dR = Math.abs(qRatio - Math.round(qRatio)), dS = Math.abs(small - Math.round(small));
+    return clamp(dS < dR ? small : qRatio, 0.5, 20);
+  }
+  if (qRatio != null) return clamp(qRatio, 0.5, 20);
+  if (smallOk || (small != null && !n.length)) return clamp(small, 0.5, 20);
+  return 1;
+}
+
+function buildBillRows(text) {
+  const rows = [];
+  String(text || '').split(/\n+/).forEach((line) => {
+    const raw = line.replace(/\s+/g, ' ').trim();
+    if (raw.length < 3) return;
+    if (looksLikeSkip(raw)) return;
+    const p = splitBillLine(raw);
+    const hasIndex = /^\d{1,3}\s*[.)]/.test(raw);
+    if (!p.money.length && !hasIndex) return;
+    if (norm(p.name).replace(/[^a-z0-9]/g, '').length < 3) return;
+    const cands = matchFood(p.name, 3);
+    const best = cands[0] || null;
+    rows.push({
+      id: 'b' + rows.length + Math.random().toString(36).slice(2, 5),
+      raw: raw,
+      name: p.name,
+      qty: inferQty(p),
+      foodId: best && best.score >= OCR.matchMin ? best.id : null,
+      candidates: cands,
+      include: true,
+    });
+  });
+  return rows.slice(0, OCR.maxRows);
+}
+
+/* So khớp chịu lỗi dấu + chịu lỗi 1–2 ký tự mỗi từ (Levenshtein), có guard chống gán bừa */
+function lev(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = new Array(n + 1), cur = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    cur[0] = i;
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    const t = prev; prev = cur; cur = t;
+  }
+  return prev[n];
+}
+function tokenSim(a, b) {
+  if (a === b) return 1;
+  return 1 - lev(a, b) / Math.max(a.length, b.length);
+}
+function matchFood(name, limit) {
+  const qTok = norm(name).replace(/[^a-z0-9 ]/g, ' ').split(' ').filter((t) => t.length > 1);
+  const out = [];
+  if (!qTok.length) return out;
+  allFoods().forEach((f) => {
+    const fTok = norm(f.name).split(' ').filter((t) => t.length > 1);
+    if (!fTok.length) return;
+    if (fTok.length === 1 && qTok.length >= 2) return; /* không gán món 1 từ cho dòng nhiều từ (Bò né ≠ Bơ) */
+    let hit = 0, sim = 0;
+    fTok.forEach((ft) => {
+      let best = 0;
+      qTok.forEach((qt) => { const s = tokenSim(ft, qt); if (s > best) best = s; });
+      if (best >= 0.8) { hit += 1; sim += best; }
+    });
+    const cov = hit / fTok.length;
+    if (cov < 0.6) return;
+    out.push({
+      id: f.id,
+      name: f.name,
+      score: Math.round(cov * (sim / Math.max(1, hit)) * 1000) / 1000,
+      cov: Math.round(cov * 100) / 100,
+    });
+  });
+  out.sort((a, b) => b.score - a.score || a.name.length - b.name.length);
+  return out.slice(0, limit || 3);
+}
+
 /* =========================== Service worker =========================== */
 let swReloaded = false;
 function initSW() {
@@ -1478,6 +1968,9 @@ async function init() {
 
   const imp = $('importFile');
   if (imp) imp.addEventListener('change', () => onImportFile(imp));
+
+  const bill = $('billFile');
+  if (bill) bill.addEventListener('change', () => onBillFile(bill));
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isModalOpen()) closeModal(); });
 

@@ -22,7 +22,7 @@
 ## Impact
 
 - **Code**: `app.js` (hằng số OCR + tiền xử lý ảnh + loader tesseract + parser dòng + matcher + sheet xem lại), `styles.css` (kiểu dòng nháp), `service-worker.js` (bucket cache OCR + bump cache name), `index.html` (input file ẩn cho ảnh bill), `README.md`/`CHANGELOG.md`.
-- **Tài nguyên mới (vendor, ~95KB)**: `vendor/tesseract/tesseract.min.js` + `vendor/tesseract/worker.min.js` (tesseract.js v6, Apache-2.0) — vendored vì worker **phải cùng origin**.
+- **Tài nguyên mới (vendor, ~174KB)**: `vendor/tesseract/tesseract.min.js` (63KB) + `vendor/tesseract/worker.min.js` (111KB) — tesseract.js v6.0.1, Apache-2.0 — vendored vì worker **phải cùng origin**.
 - **Tài nguyên tải theo nhu cầu (không commit)**: lõi wasm `tesseract-core-simd.wasm` (~3,5MB) + `vie.traineddata.gz` (3,85MB) từ CDN, lưu vào cache riêng trên thiết bị.
 - **Phụ thuộc ngoài mới**: jsDelivr (tesseract.js-core) + tessdata.projectnaptha.com (dữ liệu tiếng Việt) ở **lần dùng đầu tiên**; sau đó chạy offline. Đường dẫn gom vào một hằng số để có thể vendor toàn bộ sau này.
 - **Riêng tư**: ảnh hoá đơn và chữ nhận diện **không rời khỏi thiết bị** — chỉ có request tài nguyên OCR, không có request nào chứa ảnh/dữ liệu.
