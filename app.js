@@ -96,6 +96,7 @@ const ST = {
   favorites: [],      // foodId[]
   library: [],        // món dựng sẵn (data/foods.json)
   libLoaded: false,
+  libError: false,    // fetch thất bại + chưa có cache (ví dụ mở bằng file://)
   query: '',
   pickGroup: 'all',
   modal: null,
@@ -155,6 +156,8 @@ function nowHHMM() { const d = new Date(); return pad2(d.getHours()) + ':' + pad
 function hhmmToMin(t) { const m = HHMM.exec(t || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; }
 function minToHHMM(v) { const m = clamp(Math.round(v), 0, 1439); return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60); }
 function roundTo5(t) { return minToHHMM(Math.round(hhmmToMin(t) / 5) * 5); }
+/* Làm tròn XUỐNG mốc 5 phút — dùng cho thời gian mặc định để không bao giờ vượt quá hiện tại */
+function floorTo5(t) { return minToHHMM(Math.floor(hhmmToMin(t) / 5) * 5); }
 function localISO() {
   const d = new Date();
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' +
@@ -259,9 +262,10 @@ async function loadLibrary() {
     const cached = readJSON(KEY_LIB_CACHE, null);
     if (cached && Array.isArray(cached.foods)) list = cached.foods;
   }
-  if (!list) { ST.libLoaded = true; return false; }
+  if (!list) { ST.libLoaded = true; ST.libError = true; return false; }
   ST.library = list.map(normalizeFood).filter(Boolean);
   ST.libLoaded = true;
+  ST.libError = false;
   writeJSON(KEY_LIB_CACHE, { version: 1, foods: list });
   return true;
 }
@@ -682,6 +686,7 @@ function renderSettings() {
   const foodCard = '<div class="card">' +
     '<div class="card-head"><h2>Thư viện món</h2><span class="tiny muted">' + ST.library.length + ' món dựng sẵn · ' + ST.customFoods.length + ' món tự khai báo</span></div>' +
     '<div class="hint">Món dựng sẵn có sẵn dinh dưỡng theo 1 khẩu phần thực tế (1 bát, 1 tô, 1 ổ…). Bạn có thể thêm món riêng — dùng được ngay khi ghi bữa.</div>' +
+    (ST.libError ? '<div class="tiny" style="color:var(--over);margin-top:6px">Không tải được thư viện dựng sẵn (cần mở app qua http/https, không dùng file://).</div>' : '') +
     '<div class="divider"></div>' + customRows +
     '<div class="btn-row" style="margin-top:10px">' +
       '<button class="btn sm" type="button" onclick="openCustomFood()">Thêm món tự khai báo</button>' +
@@ -780,9 +785,13 @@ function renderPickerBody() {
   const list = searchFoods(ST.query, ST.pickGroup);
   let listHtml;
   if (!list.length) {
-    listHtml = '<div class="empty-state"><b>Không tìm thấy món phù hợp</b>' +
-      'Thử từ khoá khác, hoặc thêm món riêng của bạn rồi ghi bữa bằng món đó.' +
-      '<div style="margin-top:10px"><button class="btn sm" type="button" onclick="openCustomFood(null,true)">Thêm món tự khai báo</button></div></div>';
+    listHtml = ST.libError && !ST.customFoods.length
+      ? '<div class="empty-state"><b>Chưa tải được thư viện món</b>' +
+        'Thư viện dựng sẵn cần mở app qua http/https (bản Vercel hoặc local server). Bạn vẫn thêm được món tự khai báo để ghi bữa.' +
+        '<div style="margin-top:10px"><button class="btn sm" type="button" onclick="openCustomFood(null,true)">Thêm món tự khai báo</button></div></div>'
+      : '<div class="empty-state"><b>Không tìm thấy món phù hợp</b>' +
+        'Thử từ khoá khác, hoặc thêm món riêng của bạn rồi ghi bữa bằng món đó.' +
+        '<div style="margin-top:10px"><button class="btn sm" type="button" onclick="openCustomFood(null,true)">Thêm món tự khai báo</button></div></div>';
   } else {
     let cur = null;
     listHtml = list.map((f) => {
@@ -822,7 +831,7 @@ function openPortion(foodId, mode, entryId) {
   if (!food) { showToast('Không tìm thấy món'); return; }
   const fromPicker = !!(ST.modal && ST.modal.kind === 'pick');
   const meal = (fromPicker && ST.draft && MEAL_IDS.indexOf(ST.draft.meal) >= 0) ? ST.draft.meal : inferMeal(nowHHMM());
-  const time = isToday(ST.dateKey) ? roundTo5(nowHHMM()) : '12:00';
+  const time = isToday(ST.dateKey) ? floorTo5(nowHHMM()) : '12:00';
   openModal('portion', '', {
     mode: 'add', foodId: food.id, name: food.name, unit: food.unit, qty: 1, meal: meal, time: time,
     per: { kcal: food.kcal, protein: food.protein, carb: food.carb, fat: food.fat },
@@ -903,7 +912,8 @@ function checkPortionTime() {
     if (msg) { msg.style.display = 'block'; msg.textContent = 'Giờ không hợp lệ'; }
     return false;
   }
-  t = roundTo5(t);
+  /* luôn hạ về mốc 5 phút thấp hơn để không tự tạo thời gian tương lai */
+  t = floorTo5(t);
   inp.value = t;
   if (isToday(ST.dateKey) && hhmmToMin(t) > hhmmToMin(nowHHMM())) {
     if (msg) { msg.style.display = 'block'; msg.textContent = 'Không thể chọn thời gian trong tương lai'; }
@@ -919,7 +929,7 @@ function savePortion() {
   if (q <= 0) { showToast('Khẩu phần phải lớn hơn 0'); return; }
   const timeInp = $('ptTime');
   if (!checkPortionTime()) { showToast('Thời gian không hợp lệ'); return; }
-  const time = roundTo5(timeInp.value);
+  const time = floorTo5(timeInp.value);
   if (d.mode === 'edit') {
     const hit = findEntry(ST.dateKey, d.entryId);
     if (!hit) { closeModal(); return; }
@@ -1238,7 +1248,7 @@ function goToday() { ST.dateKey = todayKey(); ST.lastAdded = null; render(); }
 function quickAdd(foodId) {
   const food = foodById(foodId);
   if (!food) { showToast('Không tìm thấy món'); return; }
-  const time = isToday(ST.dateKey) ? roundTo5(nowHHMM()) : '12:00';
+  const time = isToday(ST.dateKey) ? floorTo5(nowHHMM()) : '12:00';
   const meal = isToday(ST.dateKey) ? inferMeal(time) : 'lunch';
   const en = addEntry(food, 1, meal, time, ST.dateKey);
   ST.lastAdded = { key: ST.dateKey, id: en.id, foodId: food.id, meal: meal };
