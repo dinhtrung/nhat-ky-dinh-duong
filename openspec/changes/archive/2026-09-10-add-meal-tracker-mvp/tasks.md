@@ -53,7 +53,7 @@ Quy ước: mỗi task đủ nhỏ cho một phiên làm việc; task deploy/ver
 - [x] 6.2 `node --check app.js` + kiểm tra thủ công luồng thêm/sửa/xoá/import/export trên `file://` (localStorage hoạt động trên file://) → tự động hoá bằng puppeteer: 42/42 check PASS
 - [x] 6.3 **Xoá `_seed.js` + thẻ `<script>` seed khỏi `index.html`**, verify `grep -c "_seed" index.html` = 0
 - [x] 6.4 Bump `CACHE = 'nhat-ky-dinh-duong-v2'`, cập nhật `CHANGELOG.md` (mục `## v1.0.0 — 2026-09-10` + các nhóm ✨ Mới / 🎨 UI) và README (mô tả + cách cài)
-- [ ] 6.5 Tạo GitHub repo `dinhtrung/nhat-ky-dinh-duong`, commit **targeted add** (không `git add -A`), push `main`
-- [ ] 6.6 Import repo vào Vercel (framework = Other), deploy, rồi **verify asset live**: `curl -s https://nhat-ky-dinh-duong.vercel.app/app.js | grep -c <marker>` = 1 và `curl -s https://nhat-ky-dinh-duong.vercel.app/data/foods.json | grep -c '"kcal"'` ≥ 150
-- [ ] 6.7 Verify riêng tư: `curl -s https://nhat-ky-dinh-duong.vercel.app/app.js | grep -c "<dữ liệu cá nhân>"` = 0
+- [x] 6.5 Tạo GitHub repo `dinhtrung/nhat-ky-dinh-duong`, commit **targeted add** (không `git add -A`), push `main` → commit `e92b830`
+- [x] 6.6 Import repo vào Vercel (framework = Other), deploy, rồi **verify asset live**: `app.js` 200 + marker `v1.2.0` = 1, `styles.css`/`manifest.json`/`service-worker.js` 200, `data/foods.json` có **203** mục `"kcal"` (≥150), icon 192/512 200; app chạy thật trên URL Vercel: 5 thẻ bữa, thư viện 203 món, trạng thái rỗng sạch
+- [x] 6.7 Verify riêng tư: `curl -s .../app.js | grep -c "trung|nguyen dinh|170cm|70kg|horisen|09xxxxxxxx"` = 0 (0 match thật; các match duy nhất trong `foods.json` là chữ "trứng" của món ăn, đã kiểm từng cái)
 - [ ] 6.8 Cài lên điện thoại người dùng, thêm thử 1 bữa thật, xuất JSON + nhập lại để xác nhận vòng dữ liệu
