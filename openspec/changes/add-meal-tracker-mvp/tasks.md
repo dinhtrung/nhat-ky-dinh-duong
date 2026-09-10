@@ -13,7 +13,7 @@ Quy ước: mỗi task đủ nhỏ cho một phiên làm việc; task deploy/ver
 
 ## 2. Thư viện món (data + tìm kiếm)
 
-- [x] 2.1 Định nghĩa schema món `{id, name, group, unit, refGrams, kcal, protein, carb, fat, aliases?}` và viết `data/foods.json` với **≥150 món/thức uống Việt** (món chính, canh-rau, đồ uống, ăn vặt, trái cây), giá trị theo **1 khẩu phần thực tế** (1 bát cơm ~200g, 1 tô phở ~500ml, 1 ổ bánh mì ~100g…) → **197 món** (main 63 · side 34 · soup 24 · fruit 20 · drink 28 · snack 28)
+- [x] 2.1 Định nghĩa schema món `{id, name, group, unit, refGrams, kcal, protein, carb, fat, aliases?}` và viết `data/foods.json` với **≥150 món/thức uống Việt** (món chính, canh-rau, đồ uống, ăn vặt, trái cây), giá trị theo **1 khẩu phần thực tế** (1 bát cơm ~200g, 1 tô phở ~500ml, 1 ổ bánh mì ~100g…) → **203 món** (main 63 · side 34 · soup 24 · fruit 20 · drink 34 · snack 28). Đồ uống có cồn (bia lon/hơi/chai, vang đỏ/trắng, rượu trắng, whisky) dùng **macro thật** — kcal vượt công thức Atwater vì cồn 7 kcal/g, KHÔNG nhồi phần cồn vào carb
 - [x] 2.2 Loader nạp `data/foods.json` (cache vào biến, fallback đọc localStorage nếu offline lần đầu); chuẩn hoá tìm kiếm **bỏ dấu** (NFD + xoá combining marks) và tìm theo `name` + `aliases`
 - [x] 2.3 UI thư viện: danh sách theo nhóm món (không chia vùng miền) + ô tìm kiếm trả kết quả khi gõ; ghim nhóm "Yêu thích" ở đầu
 - [x] 2.4 Form thêm/sửa/xoá **món tự khai báo** (tên, đơn vị, ghi chú khối lượng, kcal, đạm, carb, béo) lưu vào `meal_foods`; validate: kcal ≥ 0, tên không rỗng, số không âm
