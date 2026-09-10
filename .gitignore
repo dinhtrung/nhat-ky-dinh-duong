@@ -1,0 +1,8 @@
+# File tạm khi verify layout/deploy — KHÔNG commit
+_seed.js
+nhat-ky-dinh-duong-*.json
+nhat-ky-dinh-duong-*.csv
+*.csv
+*.tmp
+node_modules/
+.DS_Store

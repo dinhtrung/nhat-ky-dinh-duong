@@ -1,0 +1,28 @@
+# Changelog — Nhật Ký Dinh Dưỡng
+
+## v1.0.0 — 2026-09-10
+
+Bản MVP đầu tiên (change `add-meal-tracker-mvp`): PWA tĩnh ghi bữa ăn + mục tiêu dinh dưỡng.
+
+### ✨ Mới
+
+- **Ghi bữa ăn theo ngày** — 5 nhóm bữa (Sáng · Trưa · Chiều · Tối · Ăn vặt); mục bữa ăn lưu kèm **snapshot dinh dưỡng** nên sửa/xoá món trong thư viện về sau không làm lệch dữ liệu đã ghi.
+- **Khẩu phần linh hoạt** — 0.5 · 1 · 1.5 · 2 hoặc nhập tay; dinh dưỡng tính lại theo hệ số.
+- **Thư viện hơn 175 món/thức uống Việt** với kcal + đạm/carb/béo theo **1 khẩu phần thực tế** (1 bát cơm, 1 tô phở, 1 ổ bánh mì…), không phải quy đổi từ 100g.
+- **Tìm kiếm không dấu** (`com tam` → *Cơm tấm*), lọc theo nhóm món, ghim **Yêu thích**.
+- **Món tự khai báo** — thêm/sửa/xoá món riêng với đơn vị khẩu phần của bạn.
+- **Quick pick 1 chạm** — 8 chip món hay ăn tính theo **tần suất chọn trong 30 ngày** (yêu thích trước, rồi số lần chọn giảm dần); suy ra nhóm bữa theo giờ hiện tại và cho **đổi nhóm bữa ngay** nếu bấm nhầm.
+- **Mục tiêu dinh dưỡng** — Mifflin-St Jeor × hệ số vận động (1.2/1.375/1.55/1.725), điều chỉnh giảm −15% / giữ 0% / tăng +10%, làm tròn 10 kcal; preset macro 30/35/35 · 25/45/30 · 30/45/25 hoặc tự nhập (chặn nếu tổng ≠ 100% ±1).
+- **Tiến độ trong ngày** — tổng kcal đã ăn, còn lại/vượt (đổi màu cảnh báo), 3 thanh macro theo % mục tiêu.
+- **Thêm hồi tố** — chọn ngày khác và giờ theo bước **5 phút**, chặn thời gian tương lai.
+- **Sửa/xoá mục** — chạm để sửa khẩu phần/giờ/nhóm bữa; **nhấn giữ 500ms** để xoá (kèm xác nhận; desktop dùng chuột phải).
+- **Dữ liệu của bạn** — xuất JSON toàn bộ, nhập JSON có validate + màn xác nhận thay thế, xuất CSV (ngày, nhóm bữa, tên món, khẩu phần, kcal, đạm, carb, béo) sắp xếp theo ngày.
+- **Tự dọn dữ liệu cũ hơn 31 ngày** khi khởi động (chỉ ghi localStorage khi thực sự có xoá; không đụng hồ sơ/món tự khai báo).
+- **PWA** — manifest standalone, service worker cache-first với `skipWaiting` + `clients.claim`, tự tải lại đúng 1 lần khi có bản mới (guard `swReloaded`), chip phiên bản cạnh tiêu đề.
+
+### 🎨 UI
+
+- Theme tối, tiếng Việt toàn bộ, container tối đa 480px, thanh tab dưới đáy (2 tab hoạt động, chừa chỗ cho Thống kê · Kế hoạch).
+- Nút thao tác phụ dùng **icon SVG** (`stroke="currentColor"`) kèm tooltip, không dùng chữ.
+- Trạng thái rỗng an toàn: chưa có dữ liệu → hướng dẫn thêm món, chưa có hồ sơ → mời thiết lập mục tiêu (không bao giờ hiện `NaN`).
+- Bottom sheet cho mọi luồng nhập liệu, toast phản hồi sau mỗi thao tác.
