@@ -6,7 +6,7 @@
    mục tiêu + macro) · meal_foods (món tự khai báo + yêu thích).
    ===================================================================== */
 
-const APP_VERSION = 'v1.1.0';
+const APP_VERSION = 'v1.2.0';
 const KEY_LOG = 'meal_log';
 const KEY_CONFIG = 'meal_config';
 const KEY_FOODS = 'meal_foods';
@@ -100,6 +100,42 @@ const OCR = {
   maxRows: 40,       // số dòng món tối đa giữ lại
   matchMin: 0.45,    // ngưỡng tự gán món; dưới ngưỡng → để người dùng chọn
 };
+
+/* Giải thích 3 macro (chạm vào Đạm/Carb/Béo để xem) */
+const MACRO_INFO = {
+  protein: {
+    label: 'Đạm',
+    full: 'Đạm (protein)',
+    kcalPerGram: 4,
+    role: 'Xây và sửa cơ, giữ cơ khi giảm cân, giúp no lâu và ổn định đường huyết.',
+    sources: ['Thịt bò/gà/heo nạc, cá, tôm, trứng', 'Đậu phụ, đậu đỗ, sữa chua, sữa tươi', 'Hạt: hạnh nhân, điều, đậu phộng'],
+    verdictTone: 'ok',
+    verdict: 'Không nên hạn chế — phần lớn người Việt ăn thiếu đạm.',
+    tip: 'Người tập đều: 1,2–1,6 g cho mỗi kg cân nặng (bạn ~cân nặng × 1,4 g). Ít vận động: 1 g/kg là đủ. Đang giảm cân càng cần đủ đạm để không mất cơ. (Bệnh thận thì theo chỉ định bác sĩ.)',
+  },
+  carb: {
+    label: 'Carb',
+    full: 'Carb (tinh bột & đường)',
+    kcalPerGram: 4,
+    role: 'Nguồn năng lượng chính cho não và cơ — đặc biệt quan trọng khi chạy/đạp xe.',
+    sources: ['Cơm, bún, phở, bánh mì, xôi, bánh cuốn', 'Khoai lang, yến mạch, ngô, gạo lứt', 'Trái cây, sữa, đường, nước ngọt, bia'],
+    verdictTone: 'watch',
+    verdict: 'Kiểm soát — không cần cắt hẳn, nhưng nên chọn loại tốt.',
+    tip: 'Ưu tiên carb chậm (gạo lứt, khoai, yến mạch) và hạn chế uống calo (nước ngọt, trà sữa, bia). Nếu vượt mục tiêu liên tục: bớt nửa bát cơm/bún trước, đừng cắt trái cây.',
+  },
+  fat: {
+    label: 'Béo',
+    full: 'Béo (chất béo)',
+    kcalPerGram: 9,
+    role: 'Hấp thu vitamin A/D/E/K, sản xuất hormone, dự trữ năng lượng; omega-3 tốt cho tim mạch.',
+    sources: ['Dầu ăn, bơ, phô mai, mỡ, nước cốt dừa', 'Đồ chiên rán, bánh kem, snack, bim bim', 'Hạt, cá béo (cá hồi, cá thu), trứng'],
+    verdictTone: 'watch',
+    verdict: 'Nên để ý, nhưng đừng cắt về 0.',
+    tip: '1 g béo = 9 kcal, gấp đôi đạm và carb — nên chỉ cần ~20–25% năng lượng. Cách giảm dễ nhất: bớt đồ chiên rán (chuyển sang hấp/luộc/nướng), hạt ăn một nắm nhỏ (~150 kcal).',
+  },
+};
+const MACRO_ORDER = ['protein', 'carb', 'fat'];
+const MACRO_COLOR = { protein: 'var(--protein)', carb: 'var(--carb)', fat: 'var(--fat)' };
 
 /* =========================== State =========================== */
 const ST = {
@@ -529,11 +565,12 @@ function renderToday() {
       barHtml(pct, 'var(--accent)', over) +
       '<div class="macros">' + macros.map((m) => {
         const mp = m.goal > 0 ? (m.got / m.goal) * 100 : 0;
-        return '<div class="macro"><div class="macro-top"><b style="color:' + m.color + '">' + m.label + '</b>' +
+        return '<div class="macro"><div class="macro-top">' + macroLabelHtml(m.k, m.color) +
           '<span>' + fmt1(m.got) + '/' + fmtInt(m.goal) + 'g</span></div>' +
           barHtml(mp, m.color, m.got > m.goal) +
           '<div class="macro-goal">' + Math.round(mp) + '% mục tiêu</div></div>';
       }).join('') + '</div>' +
+      '<div class="tiny muted" style="margin-top:9px">Chạm vào <b>Đạm · Carb · Béo</b> để xem: tác dụng, ăn gì thì tăng, có nên hạn chế không.</div>' +
       '<div class="tiny muted" style="margin-top:10px">Mục tiêu ' + fmtInt(targets.kcal) + ' kcal · ' +
         targets.macro.protein + '/' + targets.macro.carb + '/' + targets.macro.fat + ' (đạm/carb/béo)</div>' +
     '</div>';
@@ -662,11 +699,11 @@ function renderSettings() {
   const macro = macroOfConfig();
   const targetBox = targets
     ? '<div class="target-box" id="targetBox"><div class="target-kcal">' + fmtInt(targets.kcal) + ' <small>kcal / ngày</small></div>' +
-      '<div class="target-macros">' +
-        '<div class="target-macro"><b style="color:var(--protein)">' + fmtInt(targets.protein) + 'g</b><span>Đạm</span></div>' +
-        '<div class="target-macro"><b style="color:var(--carb)">' + fmtInt(targets.carb) + 'g</b><span>Carb</span></div>' +
-        '<div class="target-macro"><b style="color:var(--fat)">' + fmtInt(targets.fat) + 'g</b><span>Béo</span></div>' +
-      '</div><div class="tiny muted" style="margin-top:9px">' + esc(formulaText(targets)) + '</div></div>'
+      '<div class="target-macros">' + MACRO_ORDER.map((k) =>
+        '<button class="target-macro" type="button" onclick="openMacroInfo(\'' + k + '\')" title="Xem tác dụng · ăn gì thì tăng · có nên hạn chế">' +
+        '<b style="color:' + MACRO_COLOR[k] + '">' + fmtInt(targets[k]) + 'g</b><span>' + esc(MACRO_INFO[k].label) + ' ⓘ</span></button>').join('') +
+      '</div><div class="tiny muted" style="margin-top:9px">' + esc(formulaText(targets)) + '</div>' +
+      '<div class="tiny muted" style="margin-top:6px">Chạm vào từng ô để xem giải thích (tác dụng · ăn gì thì tăng · có nên hạn chế).</div></div>'
     : '<div class="target-box" id="targetBox"><div class="hint">Chưa có mục tiêu — nhập đủ <b>tuổi, chiều cao, cân nặng</b> ở trên rồi bấm "Lưu hồ sơ".</div></div>';
 
   const macroCard = '<div class="card">' +
@@ -1487,6 +1524,67 @@ function doImport() {
   closeModal();
   render();
   showToast('Đã nhập ' + p.days + ' ngày · ' + p.entries + ' mục');
+}
+
+/* ---------- Giải thích macro (chạm vào Đạm/Carb/Béo) ---------- */
+function topFoodsByMacro(kind, limit) {
+  return allFoods()
+    .filter((f) => Number(f[kind]) > 0 && Number(f.kcal) >= 30)
+    .map((f) => ({ f: f, per100: (Number(f[kind]) / Number(f.kcal)) * 100 }))
+    .sort((a, b) => b.per100 - a.per100 || Number(b.f[kind]) - Number(a.f[kind]))
+    .slice(0, limit || 6);
+}
+
+function macroLabelHtml(kind, color) {
+  const info = MACRO_INFO[kind];
+  if (!info) return '';
+  return '<button class="macro-label" type="button" style="color:' + (color || MACRO_COLOR[kind]) + '" ' +
+    'title="Xem giải thích: tác dụng · ăn gì thì tăng · có nên hạn chế" onclick="openMacroInfo(\'' + kind + '\')">' +
+    esc(info.label) + '</button>';
+}
+
+function openMacroInfo(kind) {
+  if (!MACRO_INFO[kind]) return;
+  ST.draft = { kind: kind };
+  openModal('macro', '', ST.draft);
+  renderMacroSheet();
+}
+
+function renderMacroSheet() {
+  const kind = ST.draft && ST.draft.kind;
+  const info = MACRO_INFO[kind];
+  const root = $('modalRoot');
+  const sheet = root && root.querySelector('.sheet');
+  if (!info || !sheet) return;
+  const tops = topFoodsByMacro(kind, 6);
+  const targets = computeTargets();
+  const goal = targets ? targets[kind] : null;
+  sheet.innerHTML = '<div class="sheet-grab"></div>' +
+    '<div class="sheet-head"><h2>' + esc(info.full) + '</h2>' +
+      '<button class="icon-btn" type="button" title="Đóng" onclick="closeModal()">' + IC.close + '</button></div>' +
+    '<div class="sheet-body">' +
+      '<div class="target-box" style="display:flex;align-items:center;gap:10px">' +
+        '<div class="target-kcal">' + info.kcalPerGram + ' <small>kcal / gram</small></div>' +
+        (goal != null
+          ? '<div class="tiny muted" style="margin-left:auto;text-align:right">Mục tiêu của bạn<br><b style="color:' + MACRO_COLOR[kind] + ';font-size:15px">' + fmtInt(goal) + 'g/ngày</b></div>'
+          : '') +
+      '</div>' +
+      '<div class="section-title">Tác dụng</div>' +
+      '<div class="hint">' + esc(info.role) + '</div>' +
+      '<div class="section-title">Ăn gì thì tăng ' + esc(info.label.toLowerCase()) + '</div>' +
+      '<div class="hint">' + info.sources.map((s) => '• ' + esc(s)).join('<br>') + '</div>' +
+      (tops.length
+        ? '<div class="group-label" style="margin-top:10px">Đậm đặc nhất trong thư viện (mỗi khẩu phần)</div>' +
+          tops.map((t) => '<div class="pick-row"><div class="entry-main">' +
+            '<div class="entry-name">' + esc(t.f.name) + '</div>' +
+            '<div class="entry-sub">' + esc(t.f.unit) + ' · ' + fmt1(t.f[kind]) + 'g ' + esc(info.label.toLowerCase()) + ' · ' + fmtInt(t.f.kcal) + ' kcal</div>' +
+            '</div><div class="pick-kcal">' + Math.round(t.per100) + 'g/100kcal</div></div>').join('')
+        : '') +
+      '<div class="section-title">Nên hạn chế hay không?</div>' +
+      '<div class="verdict ' + (info.verdictTone === 'ok' ? 'is-ok' : 'is-watch') + '">' + esc(info.verdict) + '</div>' +
+      '<div class="hint" style="margin-top:8px">' + esc(info.tip) + '</div>' +
+    '</div>' +
+    '<div class="sheet-foot"><button class="btn" type="button" onclick="closeModal()">Đóng</button></div>';
 }
 
 /* =========================== Chụp hoá đơn (OCR) ===========================

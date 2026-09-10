@@ -16,7 +16,20 @@ PWA ghi bữa ăn hằng ngày: chọn món từ thư viện món Việt (dinh d
 | ⚡ Quick pick | 8 chip "món hay ăn" tính theo tần suất chọn 30 ngày gần nhất + món yêu thích, 1 chạm là ghi xong; đổi nhóm bữa ngay nếu bấm nhầm |
 | 📚 Thư viện | Hơn 175 món/thức uống Việt kèm kcal + macro theo khẩu phần, tìm không dấu; tự thêm/sửa/xoá món riêng, đánh dấu yêu thích |
 | 🎯 Mục tiêu | Hồ sơ cơ thể (giới tính, tuổi, cao, nặng, mức vận động) → Mifflin-St Jeor × hệ số vận động, điều chỉnh −15%/0/+10%; preset macro 30/35/35 · 25/45/30 · 30/45/25 hoặc tự nhập |
+| 📖 Giải thích macro | Chạm **Đạm / Carb / Béo** → tác dụng, ăn gì thì tăng (kèm 6 món đậm đặc nhất trong thư viện), và có nên hạn chế hay không |
 | 💾 Dữ liệu | Xuất/nhập JSON để sao lưu, xuất CSV để phân tích, tự dọn dữ liệu cũ >31 ngày |
+
+## Hàng ngày nên ăn gì? (giải thích 3 macro)
+
+Chạm vào **Đạm · Carb · Béo** ở tab Hôm nay hoặc ô mục tiêu macro trong Cài đặt để xem:
+
+| | Năng lượng | Tác dụng chính | Nên hạn chế? |
+|---|---|---|---|
+| **Đạm** | 4 kcal/g | Xây/sửa cơ, giữ cơ khi giảm cân, no lâu | **Không** — nên 1,2–1,6 g/kg cân nặng nếu tập đều |
+| **Carb** | 4 kcal/g | Năng lượng chính cho não và cơ (nhất là khi chạy/đạp) | **Kiểm soát, đừng cắt hẳn** — chọn carb chậm, cắt nước ngọt/bia trước |
+| **Béo** | 9 kcal/g | Hấp thu vitamin A/D/E/K, hormone, omega-3 cho tim | **Để ý** — 1 g = 9 kcal, giảm bằng cách bớt chiên rán (không cắt về 0) |
+
+Mỗi bảng còn liệt kê **6 món đậm đặc nhất theo macro đó trong chính thư viện của app** (xếp theo g/100 kcal) để biết ngay nên ăn gì.
 
 ## 📷 Chụp hoá đơn (OCR)
 

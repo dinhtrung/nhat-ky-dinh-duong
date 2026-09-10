@@ -1,5 +1,15 @@
 # Changelog — Nhật Ký Dinh Dưỡng
 
+## v1.2.0 — 2026-09-10
+
+### ✨ Mới
+
+- **Chạm vào Đạm / Carb / Béo để xem giải thích** — mỗi macro có một bảng gồm: năng lượng (4 · 4 · 9 kcal mỗi gram) và mục tiêu của bạn, **tác dụng**, **ăn gì thì tăng** (nhóm thực phẩm + 6 món đậm đặc nhất lấy từ chính thư viện của app, xếp theo g/100 kcal), và **có nên hạn chế không**:
+  - **Đạm** → *không nên hạn chế* (1,2–1,6 g/kg nếu tập đều) — phần lớn người Việt ăn thiếu.
+  - **Carb** → *kiểm soát, không cắt hẳn* — ưu tiên carb chậm, cắt nước ngọt/bia trước khi cắt cơm.
+  - **Béo** → *nên để ý nhưng đừng cắt về 0* — 1 g = 9 kcal, giảm dễ nhất bằng cách bớt đồ chiên rán.
+- Vào bảng giải thích từ **tab Hôm nay** (nhãn macro có gạch chân chấm) hoặc **tab Cài đặt** (3 ô mục tiêu macro).
+
 ## v1.1.0 — 2026-09-10
 
 ### ✨ Mới
