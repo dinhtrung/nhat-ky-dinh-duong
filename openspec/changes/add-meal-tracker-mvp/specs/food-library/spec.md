@@ -6,7 +6,7 @@ Thư viện món ăn/thức uống Việt Nam kèm dữ liệu dinh dưỡng the
 
 ### Requirement: Thư viện món dựng sẵn
 
-Ứng dụng SHALL kèm sẵn tối thiểu **150 món ăn và thức uống phổ biến của người Việt**, mỗi món có: tên tiếng Việt, nhóm (món chính / món phụ / canh-rau / đồ uống / ăn vặt), đơn vị khẩu phần hiển thị (bát, tô, ổ, miếng, ly, cái), khối lượng tham chiếu của một khẩu phần, và giá trị kcal + đạm + carb + béo cho một khẩu phần đó.
+Ứng dụng SHALL kèm sẵn tối thiểu **150 món ăn và thức uống phổ biến của người Việt**, mỗi món có: tên tiếng Việt, nhóm (món chính / món phụ / canh-rau / đồ uống / ăn vặt), đơn vị khẩu phần hiển thị (bát, tô, ổ, miếng, ly, cái), khối lượng tham chiếu của một khẩu phần, và giá trị kcal + đạm + carb + béo cho một khẩu phần đó. Thư viện SHALL phân loại theo **nhóm món** và SHALL **không** chia theo vùng miền.
 
 #### Scenario: Tra cứu một món quen thuộc
 
@@ -60,11 +60,21 @@ Thư viện món ăn/thức uống Việt Nam kèm dữ liệu dinh dưỡng the
 - **WHEN** người dùng xoá một món tự khai báo đã từng được dùng để ghi bữa
 - **THEN** món biến khỏi thư viện nhưng các mục bữa ăn đã ghi vẫn hiển thị đúng tên và dinh dưỡng cũ
 
-### Requirement: Món ưu tiên hiển thị trước
+### Requirement: Gợi ý nhanh theo tần suất chọn món
 
-Ứng dụng SHALL hiển thị món **yêu thích** và món **vừa dùng gần đây** ở đầu danh sách chọn món để thao tác ghi bữa nhanh.
+Ứng dụng SHALL tính **tần suất chọn món** từ lịch sử ghi bữa trong **30 ngày gần nhất** và đưa các món được chọn nhiều nhất lên thành **quick pick** ở đầu luồng chọn món. Thứ tự SHALL: món **yêu thích** trước, sau đó theo **số lần chọn giảm dần**, đồng hạng thì món được dùng **gần đây hơn** đứng trước.
 
-#### Scenario: Người dùng ăn món lặp lại hằng ngày
+#### Scenario: Quick pick hình thành theo thói quen ăn uống
 
-- **WHEN** người dùng đã ghi "Cơm trắng" 3 lần trong tuần và mở danh sách chọn món
-- **THEN** "Cơm trắng" nằm trong nhóm món gần đây ở đầu danh sách, không cần tìm kiếm
+- **WHEN** trong 30 ngày qua người dùng đã ghi "Cơm trắng" 8 lần và "Phở bò" 2 lần
+- **THEN** "Cơm trắng" đứng trước "Phở bò" trong danh sách quick pick
+
+#### Scenario: Món mới chưa có lịch sử chọn
+
+- **WHEN** người dùng vừa tạo một món tự khai báo và chưa ghi bữa nào với món đó
+- **THEN** món vẫn tìm thấy trong thư viện nhưng chưa xuất hiện trong quick pick
+
+#### Scenario: Món yêu thích luôn được ưu tiên
+
+- **WHEN** người dùng đánh dấu yêu thích một món ít dùng
+- **THEN** món đó nằm trong nhóm yêu thích ở đầu danh sách gợi ý, trước các món theo tần suất

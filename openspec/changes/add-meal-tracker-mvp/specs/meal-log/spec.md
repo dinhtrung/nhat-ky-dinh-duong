@@ -41,6 +41,20 @@ Ghi nhận bữa ăn hằng ngày theo nhóm bữa với khẩu phần linh ho�
 - **WHEN** tổng kcal trong ngày vượt giá trị mục tiêu
 - **THEN** phần chênh lệch hiển thị ở trạng thái cảnh báo (màu nhấn) kèm số kcal vượt
 
+### Requirement: Thêm nhanh món hay ăn bằng một chạm
+
+Tab Hôm nay SHALL hiển thị **quick pick** (món yêu thích + món có tần suất chọn cao nhất) để ghi vào bữa chỉ bằng **một chạm**. Khi thêm bằng một chạm, ứng dụng SHALL dùng khẩu phần mặc định **1** và suy ra nhóm bữa theo giờ hiện tại: trước 10h → Sáng; 10h–14h → Trưa; 14h–17h → Chiều; 17h–22h → Tối; ngoài các khoảng trên → Ăn vặt, và SHALL cho phép đổi nhóm bữa của mục vừa thêm mà không cần xoá và tạo lại.
+
+#### Scenario: Thêm bữa sáng bằng một chạm
+
+- **WHEN** người dùng mở ứng dụng lúc 07:20 và bấm quick pick "Bánh mì"
+- **THEN** mục "Bánh mì" được ghi vào bữa **Sáng** với 1 khẩu phần và tổng kcal/macro của ngày cập nhật ngay
+
+#### Scenario: Đổi nhóm bữa sau khi bấm nhầm
+
+- **WHEN** người dùng vừa thêm nhanh một món vào bữa Trưa nhưng muốn chuyển sang bữa Chiều
+- **THEN** ứng dụng cho chọn lại nhóm bữa của mục đó tại chỗ và tính lại tổng của cả hai bữa
+
 ### Requirement: Sửa và xoá mục bữa ăn
 
 Ứng dụng SHALL cho phép sửa số khẩu phần và thời gian của một mục, và cho phép xoá mục bằng thao tác **nhấn giữ** trên điện thoại (kèm xác nhận) cùng phương án tương đương trên desktop.

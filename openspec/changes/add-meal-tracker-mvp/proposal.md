@@ -4,7 +4,7 @@ Anh cần một công cụ đơn giản, offline, chạy trên điện thoại �
 
 ## What Changes
 
-- Tạo app PWA mới **"Nhật Ký Bữa Ăn"** — static site (không backend, không build step), chạy offline, cài được vào màn hình chính, deploy qua GitHub → Vercel (cùng mô hình app thuốc lá).
+- Tạo app PWA mới **"Nhật Ký Dinh Dưỡng"** — static site (không backend, không build step), chạy offline, cài được vào màn hình chính, deploy qua GitHub → Vercel (cùng mô hình app thuốc lá).
 - **Ghi bữa trong ngày**: 5 nhóm bữa (Sáng · Trưa · Chiều · Tối · Ăn vặt), thêm nhanh món từ thư viện, chọn khẩu phần (bát/tô/ổ/miếng/hệ số), xem tổng kcal + 3 macro đã ăn so với mục tiêu trong ngày; sửa/xoá từng món (long-press xoá, time-picker 5 phút cho món ăn thêm hồi tố).
 - **Thư viện món Việt**: ~150–200 món ăn/thức uống phổ biến kèm kcal + đạm/carb/béo theo **khẩu phần thực tế người Việt** (1 bát cơm, 1 tô phở, 1 ổ bánh mì…); người dùng thêm được món riêng (tự khai báo dinh dưỡng).
 - **Mục tiêu dinh dưỡng**: nhập thông tin cơ thể (cao/nặng/tuổi/giới/mức vận động) → tự tính kcal mục tiêu (Mifflin-St Jeor × hệ số vận động, điều chỉnh theo mục tiêu giảm/giữ/tăng cân) + tỉ lệ macro; hiển thị tiến độ còn lại trong ngày.
@@ -26,7 +26,7 @@ Anh cần một công cụ đơn giản, offline, chạy trên điện thoại �
 
 ## Impact
 
-- **Repo mới**: `~/meal-tracker` → GitHub `dinhtrung/meal-tracker` → Vercel (static, framework = Other). Chưa có code cũ nên không có thay đổi phá vỡ (breaking) nào.
+- **Repo mới**: `~/nhat-ky-dinh-duong` → GitHub `dinhtrung/nhat-ky-dinh-duong` → Vercel `nhat-ky-dinh-duong.vercel.app` (static, framework = Other). Chưa có code cũ nên không có thay đổi phá vỡ (breaking) nào.
 - **File mới**: `index.html`, `styles.css`, `app.js`, `manifest.json`, `service-worker.js`, `data/foods.json` (thư viện món), `icon-192.png`/`icon-512.png`, `CHANGELOG.md`, `README.md`.
 - **Tái sử dụng pattern đã kiểm chứng từ `~/smoking-tracker`**: khung PWA + SW bump, chart SVG pixel-perfect, long-press delete, time-picker 5 phút, export/import JSON qua Telegram, verify layout 328px bằng puppeteer probe, luật tối đa 4 tab, nút icon-only.
 - **Ràng buộc riêng tư**: `defaultData()` trả cấu trúc rỗng — KHÔNG nhúng dữ liệu thật (cân nặng, món ăn) vào source vì repo/Vercel là public.

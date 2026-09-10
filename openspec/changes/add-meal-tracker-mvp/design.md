@@ -35,13 +35,17 @@ Xem `proposal.md` — Why. Ràng buộc kỹ thuật đang định hình thiết
 
 **D5 — Công thức dinh dưỡng chuẩn hoá một chỗ.** BMR Mifflin-St Jeor; hệ số vận động 1.2/1.375/1.55/1.725; điều chỉnh −15%/0/+10%; macro preset 30/35/35 · 25/45/30 · 30/45/25; quy đổi 4 kcal/g (đạm, carb), 9 kcal/g (béo); làm tròn 10 kcal và 1 g. Tất cả hằng số đặt ở đầu `app.js` cạnh `DB_KEY` (tránh TDZ — bài học từ app thuốc lá).
 
-**D6 — Service worker cache-first + bump version mỗi deploy.** Giữ đúng pattern app thuốc lá (đã chạy ổn định): `const CACHE = 'meal-tracker-vN'` bump trong **cùng commit** với thay đổi asset, kèm `skipWaiting` + `clients.claim` + auto-reload 1 lần qua `controllerchange`. *Loại bỏ:* network-first (FlowFi dùng để tránh quên bump) — nhưng với app ăn uống, ưu tiên mở nhanh offline (bữa sáng ở ngoài đường), nên chọn cache-first và siết kỷ luật bump bằng task checklist.
+**D6 — Service worker cache-first + bump version mỗi deploy.** Giữ đúng pattern app thuốc lá (đã chạy ổn định): `const CACHE = 'nhat-ky-dinh-duong-vN'` bump trong **cùng commit** với thay đổi asset, kèm `skipWaiting` + `clients.claim` + auto-reload 1 lần qua `controllerchange`. *Loại bỏ:* network-first (FlowFi dùng để tránh quên bump) — nhưng với app ăn uống, ưu tiên mở nhanh offline (bữa sáng ở ngoài đường), nên chọn cache-first và siết kỷ luật bump bằng task checklist.
 
 **D7 — Kiểm chứng bằng puppeteer probe + seed file tạm.** Layout đo ở 328px (màn 360px) như app thuốc lá; dữ liệu test nạp bằng file `_seed.js` tạm (thêm `<script>` rồi **xoá trước khi commit**, verify bằng grep `_seed`). Thời gian ghi record dùng chuỗi ISO **giờ local không có `Z`** để tránh lệch ngày do UTC.
 
-**D8 — Không nhúng dữ liệu thật; repo/Vercel công khai.** `defaultData()` trả rỗng; `.gitignore` chặn file seed/export (`_seed.js`, `nhat-ky-bua-an-*.json`, `*.csv`). Sau deploy verify bằng `curl` + grep tên dữ liệu cá nhân = 0.
+**D8 — Không nhúng dữ liệu thật; repo/Vercel công khai.** `defaultData()` trả rỗng; `.gitignore` chặn file seed/export (`_seed.js`, `nhat-ky-dinh-duong-*.json`, `*.csv`). Sau deploy verify bằng `curl` + grep tên dữ liệu cá nhân = 0.
 
-**D9 — Deploy: GitHub `dinhtrung/meal-tracker` + Vercel static.** Push `main` = deploy; verify cách ly bằng grep marker trong `app.js` trên URL live (bài học: URL cũ có thể vẫn trả 200).
+**D9 — Deploy: GitHub `dinhtrung/nhat-ky-dinh-duong` + Vercel `nhat-ky-dinh-duong.vercel.app`.** Push `main` = deploy; verify bằng grep marker trong `app.js` trên URL live (bài học: URL cũ có thể vẫn trả 200).
+
+**D10 — Đặt tên thống nhất "Nhật Ký Dinh Dưỡng".** App name hiển thị "Nhật Ký Dinh Dưỡng"; repo `dinhtrung/nhat-ky-dinh-duong`; URL Vercel `nhat-ky-dinh-duong.vercel.app`; thư mục local `~/nhat-ky-dinh-duong`; tên file xuất `nhat-ky-dinh-duong-YYYY-MM-DD.json` / `nhat-ky-dinh-duong-YYYY-MM-DD.csv`; cache SW `nhat-ky-dinh-duong-vN`. Lý do: một tên duy nhất từ repo → URL → tên file giúp nhận diện và tránh nhầm với app thuốc lá khi mở nhiều PWA trên cùng điện thoại.
+
+**D11 — Quick pick tính theo tần suất chọn trong lịch sử, không theo "món mới nhất".** Đếm số lần mỗi `foodId` xuất hiện trong `meal_log` của **30 ngày gần nhất**; sắp xếp: yêu thích trước → số lần chọn giảm dần → đồng hạng thì lần dùng gần nhất mới hơn đứng trước; hiển thị tối đa ~8 chip ở tab Hôm nay. Tính lại mỗi lần render (rẻ: chỉ quét log 30 ngày), **không** lưu bảng đếm riêng để tránh lệch dữ liệu khi sửa/xoá mục. *Loại bỏ:* chỉ dùng "gần đây" (tín hiệu yếu — món ăn 1 lần tuần trước sẽ đè món ăn hằng ngày), bảng đếm lưu sẵn (thêm trạng thái dễ sai).
 
 ## Risks / Trade-offs
 
@@ -58,6 +62,10 @@ Repo mới nên không cần migrate dữ liệu. Triển khai: khởi tạo rep
 
 ## Open Questions
 
-- Tên hiển thị và URL Vercel chính thức (đề xuất: app **"Nhật Ký Bữa Ăn"**, repo `meal-tracker`, URL `nhat-ky-bua-an.vercel.app`) — người dùng chốt khi deploy.
-- Có muốn thêm nhanh "món hay ăn" thành nút 1 chạm ở tab Hôm nay (kiểu +1 của app thuốc lá) không — có thể thêm sau mà không đổi spec.
-- Thư viện món có cần nhóm theo vùng miền (Bắc/Trung/Nam) không — hiện chỉ nhóm theo loại món; bổ sung được ở change sau.
+Không còn câu hỏi mở — 3 điểm đã chốt với người dùng (2026-09-09):
+
+1. **Tên/URL**: app "Nhật Ký Dinh Dưỡng", repo `dinhtrung/nhat-ky-dinh-duong`, URL `nhat-ky-dinh-duong.vercel.app` (xem D10).
+2. **Quick pick**: CÓ — tính theo tần suất chọn trong 30 ngày, quick pick 1 chạm ở tab Hôm nay (xem D11).
+3. **Vùng miền**: KHÔNG chia Bắc/Trung/Nam — chỉ nhóm theo loại món; người dùng vẫn tự tạo món ăn riêng (yêu cầu bắt buộc trong spec `food-library`).
+
+Còn lại chỉ là quyết định nhỏ khi code: số lượng chip quick pick (mặc định 8) và vị trí đặt chip trong tab Hôm nay — không ảnh hưởng spec.
