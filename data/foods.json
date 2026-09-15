@@ -2260,7 +2260,7 @@
  },
  {
   "id": "nuoc-mo",
-  "name": "Nước mơ",
+  "name": "Nước mơ ngâm đường",
   "group": "drink",
   "unit": "1 ly",
   "refGrams": 300,
@@ -2270,10 +2270,27 @@
   "fat": 0.1,
   "aliases": [
    "nuoc mo",
-   "nước mơ muối",
-   "nuoc mo muoi",
    "mơ ngâm đường",
+   "nuoc mo duong",
    "apricot drink"
+  ]
+ },
+ {
+  "id": "nuoc-mo-muoi",
+  "name": "Nước mơ muối",
+  "group": "drink",
+  "unit": "1 ly",
+  "refGrams": 300,
+  "kcal": 25,
+  "protein": 0.2,
+  "carb": 6.0,
+  "fat": 0.0,
+  "aliases": [
+   "nuoc mo muoi",
+   "mơ muối",
+   "mo muoi",
+   "mơ muối pha",
+   "nước mơ mặn"
   ]
  },
  {

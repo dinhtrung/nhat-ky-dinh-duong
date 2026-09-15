@@ -1,5 +1,14 @@
 # Changelog — Nhật Ký Dinh Dưỡng
 
+## v1.3.2 — 2026-09-16
+
+### 🥤 Nước mơ — tách rõ 2 loại (207 → 208)
+
+- **Nước mơ ngâm đường** (đổi tên từ *Nước mơ*) — 1 ly 300 g · 70 kcal · C17.
+- 🆕 **Nước mơ muối** — 1 ly 300 g · **25 kcal** · C6 (mơ muối pha loãng, ước tính; pha nhạt/không đường thì ~10 kcal → ghi 0,4–0,5 ly).
+- Bỏ alias `nuoc mo muoi` khỏi món ngâm đường để gõ `mo muoi` chỉ ra đúng 1 kết quả.
+- Bump cache service worker **v7 → v8**.
+
 ## v1.3.1 — 2026-09-16
 
 ### 🥤 Đồ uống (205 → 207)
