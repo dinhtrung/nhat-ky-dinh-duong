@@ -33,7 +33,7 @@ Mỗi bảng còn liệt kê **6 món đậm đặc nhất theo macro đó trong
 
 ## 📷 Chụp hoá đơn (OCR)
 
-Đi ăn nhà hàng: vào luồng thêm món → **Chụp hoá đơn để điền nhanh** (hoặc chọn ảnh đã chụp sẵn) → app đọc bill, tách ra từng dòng món, đoán số lượng, khớp với thư viện 203 món → **màn xem lại** để sửa/đổi món/bỏ dòng → bấm *Ghi N món* là xong cả bữa.
+Đi ăn nhà hàng: vào luồng thêm món → **Chụp hoá đơn để điền nhanh** (hoặc chọn ảnh đã chụp sẵn) → app đọc bill, tách ra từng dòng món, đoán số lượng, khớp với thư viện 205 món → **màn xem lại** để sửa/đổi món/bỏ dòng → bấm *Ghi N món* là xong cả bữa.
 
 **Nguyên tắc:** OCR chỉ tạo **bản nháp**, không bao giờ tự ghi. Số liệu đo thật cho thấy phải như vậy: bill in nhiệt đọc được **6/6 tên món** nhưng sai dấu khoảng 1/3 trường hợp (`Rau muống` → `Rau muôúg`, `cá lóc` → `cá tóc`), và cột số tiền đọc sai nhiều (`95.000` → `95.0900`).
 

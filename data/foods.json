@@ -867,6 +867,44 @@
   ]
  },
  {
+  "id": "mi-van-than",
+  "name": "Mì vằn thắn",
+  "group": "main",
+  "unit": "1 tô",
+  "refGrams": 450,
+  "kcal": 480,
+  "protein": 24.0,
+  "carb": 60.0,
+  "fat": 16.0,
+  "aliases": [
+   "mi van than",
+   "mỳ vằn thắn",
+   "mì hoành thánh",
+   "mi hoanh thanh",
+   "hoành thánh",
+   "hoanh thanh",
+   "wonton"
+  ]
+ },
+ {
+  "id": "mien-luon",
+  "name": "Miến lươn",
+  "group": "main",
+  "unit": "1 tô",
+  "refGrams": 450,
+  "kcal": 460,
+  "protein": 26.0,
+  "carb": 59.5,
+  "fat": 13.0,
+  "aliases": [
+   "mien luon",
+   "miến lươn nước",
+   "mien luon nuoc",
+   "miến lươn Nghệ An",
+   "miến lươn trộn"
+  ]
+ },
+ {
   "id": "pho-xao",
   "name": "Phở xào",
   "group": "main",

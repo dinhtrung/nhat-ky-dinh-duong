@@ -1,5 +1,14 @@
 # Changelog — Nhật Ký Dinh Dưỡng
 
+## v1.2.1 — 2026-09-16
+
+### 🍜 Thư viện món (203 → 205)
+
+- Thêm **Mì vằn thắn** (1 tô 450 g · 480 kcal · Đ24 C60 B16) — gõ *mi van than*, *mì hoành thánh*, *wonton* đều ra.
+- Thêm **Miến lươn** (1 tô 450 g · 460 kcal · Đ26 C59,5 B13) — gõ *mien luon*, *miến lươn nước*, *miến lươn Nghệ An*, *miến lươn trộn* đều ra.
+- Đối chiếu bảng thành phần dinh dưỡng món ăn (**TT 30/2026/TT-BYT**) rồi quy về khẩu phần "1 tô" theo đúng quy ước thư viện (~90–110 kcal/100 g cả bát gồm nước dùng) để nhất quán với phở/hủ tiếu/miến gà.
+- Bump cache service worker **v4 → v5** để PWA đã cài trên máy nhận thư viện mới.
+
 ## v1.2.0 — 2026-09-10
 
 ### ✨ Mới
