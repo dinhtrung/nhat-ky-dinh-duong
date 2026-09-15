@@ -1,4 +1,4 @@
-const CACHE = 'nhat-ky-dinh-duong-v6';
+const CACHE = 'nhat-ky-dinh-duong-v7';
 /* Bucket riêng cho tài nguyên OCR (lõi wasm ~3,5MB + dữ liệu tiếng Việt ~4MB):
    tải ở lần dùng đầu rồi giữ trên máy để các lần sau chạy offline */
 const OCR_CACHE = 'nhat-ky-dinh-duong-ocr-v1';

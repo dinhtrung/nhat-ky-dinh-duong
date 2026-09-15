@@ -6,7 +6,7 @@
    mục tiêu + macro) · meal_foods (món tự khai báo + yêu thích).
    ===================================================================== */
 
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.3.1';
 const KEY_LOG = 'meal_log';
 const KEY_CONFIG = 'meal_config';
 const KEY_FOODS = 'meal_foods';

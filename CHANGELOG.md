@@ -1,5 +1,14 @@
 # Changelog — Nhật Ký Dinh Dưỡng
 
+## v1.3.1 — 2026-09-16
+
+### 🥤 Đồ uống (205 → 207)
+
+- Thêm **Nước mơ** (1 ly 300 g · 70 kcal · C17) và **Pocari Sweat** (1 chai 500 g · 125 kcal · C31 — theo công bố nhà sản xuất 25 kcal/100 ml).
+- Gõ **`cafe`** giờ ra ngay cả 6 món cà phê (*Cà phê sữa đá / đen đá / đen nóng / sữa nóng / muối / Bạc xỉu*) — trước đây phải gõ đúng `ca phe`.
+- *Nước chanh* (82 kcal/ly) và *Trà đá* (2 kcal/ly) đã có sẵn từ trước, không thêm trùng.
+- Bump cache service worker **v6 → v7**.
+
 ## v1.3.0 — 2026-09-16
 
 ### ✨ Mới

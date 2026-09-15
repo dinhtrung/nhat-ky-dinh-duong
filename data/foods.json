@@ -2051,6 +2051,7 @@
   "carb": 20.0,
   "fat": 4.0,
   "aliases": [
+   "cafe",
    "ca phe sua da",
    "cà phê sữa"
   ]
@@ -2066,6 +2067,7 @@
   "carb": 2.0,
   "fat": 0.1,
   "aliases": [
+   "cafe",
    "ca phe den da"
   ]
  },
@@ -2080,6 +2082,7 @@
   "carb": 1.5,
   "fat": 0.1,
   "aliases": [
+   "cafe",
    "ca phe den nong"
   ]
  },
@@ -2094,6 +2097,7 @@
   "carb": 18.0,
   "fat": 4.0,
   "aliases": [
+   "cafe",
    "ca phe sua nong"
   ]
  },
@@ -2108,6 +2112,7 @@
   "carb": 24.0,
   "fat": 5.0,
   "aliases": [
+   "cafe",
    "bac xiu"
   ]
  },
@@ -2122,6 +2127,7 @@
   "carb": 18.0,
   "fat": 5.0,
   "aliases": [
+   "cafe",
    "ca phe muoi"
   ]
  },
@@ -2250,6 +2256,42 @@
   "fat": 0.1,
   "aliases": [
    "nuoc chanh"
+  ]
+ },
+ {
+  "id": "nuoc-mo",
+  "name": "Nước mơ",
+  "group": "drink",
+  "unit": "1 ly",
+  "refGrams": 300,
+  "kcal": 70,
+  "protein": 0.2,
+  "carb": 17.0,
+  "fat": 0.1,
+  "aliases": [
+   "nuoc mo",
+   "nước mơ muối",
+   "nuoc mo muoi",
+   "mơ ngâm đường",
+   "apricot drink"
+  ]
+ },
+ {
+  "id": "pocari-sweat",
+  "name": "Pocari Sweat",
+  "group": "drink",
+  "unit": "1 chai",
+  "refGrams": 500,
+  "kcal": 125,
+  "protein": 0.0,
+  "carb": 31.0,
+  "fat": 0.0,
+  "aliases": [
+   "pocari",
+   "pocari sweat",
+   "nuoc bu dien giai",
+   "nước bù điện giải",
+   "ion drink"
   ]
  },
  {
