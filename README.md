@@ -31,9 +31,19 @@ Chạm vào **Đạm · Carb · Béo** ở tab Hôm nay hoặc ô mục tiêu ma
 
 Mỗi bảng còn liệt kê **6 món đậm đặc nhất theo macro đó trong chính thư viện của app** (xếp theo g/100 kcal) để biết ngay nên ăn gì.
 
+## 📚 Tra cứu theo bảng chuẩn TT 30/2026/TT-BYT
+
+Trong sheet chọn món có 2 chip nguồn: **Thư viện món** (205 món khẩu phần thực tế — mặc định) và **Bảng TT30/2026** (722 món theo *bảng thành phần dinh dưỡng món ăn*, Phụ lục II Thông tư 30/2026/TT-BYT, hiệu lực 10/07/2026).
+
+- Món TT30 hiển thị **giá trị trên 100 g thành phẩm** + nhãn `TT30/2026 · 100 g`; ghi bữa bằng cách chọn số lần 100 g (1,5 = 150 g…). Trong bảng gốc luôn có sẵn bảng quy đổi 100/200/300 g để tham chiếu.
+- Bảng tải **một lần khi bấm chip** (không tải lúc mở app) rồi lưu trên máy để dùng offline; đã đưa vào precache của service worker.
+- Mỗi món giữ đủ **14 chỉ tiêu** của bảng gốc (năng lượng, đạm, béo, bột đường, xơ, canxi, sắt, kẽm, natri, kali, vitamin A, beta-caroten, vitamin C, cholesterol) — app đang theo dõi 4 chỉ tiêu đầu, phần còn lại lưu sẵn trong `data/tt30.json`.
+- **64 món** trong bảng gốc không công bố đủ đạm/béo/bột đường → chỉ tiêu thiếu được suy từ năng lượng và đánh dấu `est: true` (hiển thị kèm `(≈)`).
+- Khớp tên món: gõ không dấu như mọi chỗ khác (`mien luon`, `van than`, `cha ca`) — tên gốc được giữ nguyên, kể cả tên có số lượng như *Bánh bột lọc (5 cái)*.
+
 ## 📷 Chụp hoá đơn (OCR)
 
-Đi ăn nhà hàng: vào luồng thêm món → **Chụp hoá đơn để điền nhanh** (hoặc chọn ảnh đã chụp sẵn) → app đọc bill, tách ra từng dòng món, đoán số lượng, khớp với thư viện 205 món → **màn xem lại** để sửa/đổi món/bỏ dòng → bấm *Ghi N món* là xong cả bữa.
+Đi ăn nhà hàng: vào luồng thêm món → bấm **nút 📷 cạnh ô tìm kiếm** (hoặc nút 📷 trong sheet khẩu phần) → app đọc bill, tách ra từng dòng món, đoán số lượng, khớp với thư viện khẩu phần (205 món) → **màn xem lại** để sửa/đổi món/bỏ dòng → bấm *Ghi N món* là xong cả bữa.
 
 **Nguyên tắc:** OCR chỉ tạo **bản nháp**, không bao giờ tự ghi. Số liệu đo thật cho thấy phải như vậy: bill in nhiệt đọc được **6/6 tên món** nhưng sai dấu khoảng 1/3 trường hợp (`Rau muống` → `Rau muôúg`, `cá lóc` → `cá tóc`), và cột số tiền đọc sai nhiều (`95.000` → `95.0900`).
 
@@ -98,7 +108,8 @@ styles.css          theme tối, container 480px
 app.js              toàn bộ logic (hằng số ở đầu file)
 manifest.json       khai báo PWA
 service-worker.js   cache-first + skipWaiting/clients.claim + bucket cache tài nguyên OCR
-data/foods.json     thư viện món dựng sẵn
+data/foods.json     thư viện món dựng sẵn (205 món, khẩu phần thực tế: 1 tô/1 bát/1 ổ…)
+data/tt30.json      bảng thành phần dinh dưỡng món ăn — TT 30/2026/TT-BYT (722 món, giá trị trên 100 g) + 14 chỉ tiêu/món
 vendor/tesseract/   tesseract.js v6.0.1 (wrapper + worker, Apache-2.0) — worker phải cùng origin
 gen_icons.js        sinh icon PNG bằng puppeteer
 ```

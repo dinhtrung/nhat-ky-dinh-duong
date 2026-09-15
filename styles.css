@@ -422,6 +422,9 @@ svg { display: block; }
   font-size: 13.5px;
 }
 .search-box input:focus { outline: none; border-color: var(--accent); }
+.search-row { display: flex; gap: 8px; align-items: stretch; }
+.search-row .search-box { flex: 1 1 auto; min-width: 0; }
+.search-row .cam-btn { width: 42px; height: auto; flex: 0 0 42px; }
 
 .group-label {
   position: sticky;

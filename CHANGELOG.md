@@ -1,5 +1,18 @@
 # Changelog — Nhật Ký Dinh Dưỡng
 
+## v1.3.0 — 2026-09-16
+
+### ✨ Mới
+
+- **📚 Chip nguồn "Bảng TT30/2026"** trong sheet chọn món: tra cứu **722 món theo bảng thành phần dinh dưỡng món ăn (Phụ lục II — TT 30/2026/TT-BYT, hiệu lực 10/07/2026)**, mỗi món giữ **14 chỉ tiêu** trên 100 g (năng lượng, đạm, béo, bột đường, xơ, canxi, sắt, kẽm, natri, kali, vitamin A, beta-caroten, vitamin C, cholesterol). Bảng tải **một lần khi bấm chip** (không làm nặng lúc mở app), lưu trên máy để dùng offline, có trong precache.
+- Ghi bữa từ món TT30 theo số lần 100 g (1,5 = 150 g). Món thiếu chỉ tiêu trong bảng gốc được suy từ năng lượng và hiển thị `(≈)` (64 món).
+- Thư viện khẩu phần 205 món giữ nguyên làm mặc định — không trộn lẫn 2 hệ khẩu phần.
+
+### 🔧 Sửa
+
+- Nút **"Chụp hoá đơn để điền nhanh"** (thanh to, ít dùng) → thu thành **icon 📷 cạnh ô tìm kiếm**, cùng hàng với ô nhập liệu, không còn chiếm một dòng riêng.
+- Bump cache service worker **v5 → v6** (thêm `data/tt30.json`).
+
 ## v1.2.1 — 2026-09-16
 
 ### 🍜 Thư viện món (203 → 205)

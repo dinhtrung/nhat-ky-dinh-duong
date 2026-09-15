@@ -6,12 +6,13 @@
    mục tiêu + macro) · meal_foods (món tự khai báo + yêu thích).
    ===================================================================== */
 
-const APP_VERSION = 'v1.2.1';
+const APP_VERSION = 'v1.3.0';
 const KEY_LOG = 'meal_log';
 const KEY_CONFIG = 'meal_config';
 const KEY_FOODS = 'meal_foods';
 const KEY_LIB_CACHE = 'meal_library_cache';
 const DATA_URL = 'data/foods.json';
+const TT30_URL = 'data/tt30.json';   // bảng thành phần dinh dưỡng món ăn (TT 30/2026/TT-BYT) — giá trị trên 100 g
 
 const KEEP_DAYS = 31;            // dọn dữ liệu cũ hơn 31 ngày
 const KCAL_STEP = 10;            // làm tròn mục tiêu kcal
@@ -146,6 +147,10 @@ const ST = {
   customFoods: [],    // món tự khai báo
   favorites: [],      // foodId[]
   library: [],        // món dựng sẵn (data/foods.json)
+  tt30: [],           // bảng thành phần dinh dưỡng món ăn TT 30/2026/TT-BYT (data/tt30.json, /100 g)
+  tt30Loaded: false,
+  tt30Error: false,
+  pickSource: 'lib',  // 'lib' = thư viện khẩu phần · 'tt30' = bảng TT30
   libLoaded: false,
   libError: false,    // fetch thất bại + chưa có cache (ví dụ mở bằng file://)
   query: '',
@@ -296,6 +301,9 @@ function normalizeFood(raw) {
     carb: Math.max(0, round1(Number(raw.carb) || 0)),
     fat: Math.max(0, round1(Number(raw.fat) || 0)),
     aliases: Array.isArray(raw.aliases) ? raw.aliases.map((a) => String(a)) : [],
+    source: raw.source || '',
+    nhom: raw.nhom || '',
+    est: !!raw.est,
     custom: !!raw.custom,
     hay: norm(name + ' ' + (Array.isArray(raw.aliases) ? raw.aliases.join(' ') : '')),
   };
@@ -328,6 +336,7 @@ function foodById(id) {
   if (!id) return null;
   for (let i = 0; i < ST.customFoods.length; i++) if (ST.customFoods[i].id === id) return ST.customFoods[i];
   for (let i = 0; i < ST.library.length; i++) if (ST.library[i].id === id) return ST.library[i];
+  for (let i = 0; i < ST.tt30.length; i++) if (ST.tt30[i].id === id) return ST.tt30[i];
   return null;
 }
 function isFav(id) { return ST.favorites.indexOf(id) >= 0; }
@@ -340,9 +349,39 @@ function toggleFav(id) {
   showToast(i >= 0 ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
 }
 
+/* ---------- Bảng thành phần dinh dưỡng món ăn (TT 30/2026/TT-BYT) ---------- */
+async function loadTT30() {
+  if (ST.tt30Loaded) return !ST.tt30Error;
+  try {
+    const res = await fetch(TT30_URL, { cache: 'no-cache' });
+    if (res && res.ok) {
+      const data = await res.json();
+      const arr = data && Array.isArray(data.foods) ? data.foods : null;
+      if (arr) {
+        ST.tt30 = arr.map(normalizeFood).filter(Boolean);
+        ST.tt30Loaded = true; ST.tt30Error = false;
+        return true;
+      }
+    }
+  } catch (e) { /* offline lần đầu hoặc mở bằng file:// */ }
+  ST.tt30Loaded = true; ST.tt30Error = true;
+  return false;
+}
+
+function setPickSource(src) {
+  if (ST.pickSource === src) return;
+  ST.pickSource = src;
+  if (src === 'tt30' && !ST.tt30Loaded) {
+    renderPickerBody();
+    loadTT30().then(() => { if (ST.modal && ST.modal.kind === 'pick') renderPickerBody(); });
+    return;
+  }
+  renderPickerBody();
+}
+
 function searchFoods(q, group) {
   const nq = norm(q);
-  return allFoods().filter((f) => {
+  return (ST.pickSource === 'tt30' ? ST.tt30 : allFoods()).filter((f) => {
     if (group === 'fav' && !isFav(f.id)) return false;
     if (group && group !== 'all' && group !== 'fav' && f.group !== group) return false;
     if (!nq) return true;
@@ -810,10 +849,12 @@ function openPicker(meal, forRowId) {
   sheet.innerHTML = '<div class="sheet-grab"></div>' +
     '<div class="sheet-head"><h2>' + (forRow ? 'Chọn món cho dòng này' : 'Chọn món') + '</h2>' +
       '<button class="icon-btn" type="button" title="Đóng" onclick="closeModal()">' + IC.close + '</button></div>' +
-    '<div class="search-box" style="margin-top:10px">' + IC.search +
-      '<input id="pickSearch" type="search" placeholder="Tìm món (gõ không dấu cũng được)" autocomplete="off" oninput="onSearchInput(this.value)">' +
+    '<div class="search-row" style="margin-top:10px">' +
+      '<div class="search-box">' + IC.search +
+        '<input id="pickSearch" type="search" placeholder="Tìm món (gõ không dấu cũng được)" autocomplete="off" oninput="onSearchInput(this.value)">' +
+      '</div>' +
+      (forRow ? '' : '<button class="icon-btn cam-btn" type="button" title="Chụp hoá đơn để điền nhanh" aria-label="Chụp hoá đơn để điền nhanh" onclick="openBillCapture()">' + IC.camera + '</button>') +
     '</div>' +
-    (forRow ? '' : '<button class="btn block" style="margin-top:8px" type="button" onclick="openBillCapture()">' + IC.camera + ' Chụp hoá đơn để điền nhanh</button>') +
     '<div class="sheet-body" id="pickerBody"></div>';
   renderPickerBody();
   const inp = $('pickSearch');
@@ -831,11 +872,15 @@ function renderPickerBody() {
   const picks = getQuickPicks(6);
   const filters = [{ id: 'all', label: 'Tất cả' }, { id: 'fav', label: '★ Yêu thích' }]
     .concat(GROUPS.map((g) => ({ id: g.id, label: g.label })));
+  const srcRow = '<div class="chip-row" style="margin-top:10px">' +
+    [['lib', 'Thư viện món'], ['tt30', 'Bảng TT30/2026']].map((src) =>
+      '<button class="chip' + (ST.pickSource === src[0] ? ' is-fav' : '') + '" type="button" onclick="setPickSource(\'' + src[0] + '\')">' + esc(src[1]) + '</button>'
+    ).join('') + '</div>';
   const filterRow = '<div class="chip-row" style="margin-top:10px">' + filters.map((f) =>
     '<button class="chip' + (ST.pickGroup === f.id ? ' is-fav' : '') + '" type="button" onclick="setPickGroup(\'' + f.id + '\')">' + esc(f.label) + '</button>'
   ).join('') + '</div>';
 
-  const quickRow = (!ST.query && picks.length)
+  const quickRow = (!ST.query && picks.length && ST.pickSource !== 'tt30')
     ? '<div class="group-label">Món hay ăn</div><div class="chip-row">' + picks.map((p) =>
         '<button class="chip" type="button" onclick="' + pickCall(p.food.id) + '">' + esc(p.food.name) +
         ' <span class="chip-kcal">' + fmtInt(p.food.kcal) + '</span></button>').join('') + '</div>'
@@ -844,7 +889,12 @@ function renderPickerBody() {
   const list = searchFoods(ST.query, ST.pickGroup);
   let listHtml;
   if (!list.length) {
-    listHtml = ST.libError && !ST.customFoods.length
+    listHtml = (ST.pickSource === 'tt30')
+      ? '<div class="empty-state"><b>' + (ST.tt30Loaded && ST.tt30Error ? 'Chưa tải được bảng TT30/2026' : 'Đang tải bảng TT30/2026…') + '</b>' +
+        (ST.tt30Loaded && ST.tt30Error
+          ? 'Bảng thành phần dinh dưỡng món ăn cần mở app qua http/https (bản Vercel hoặc local server). Thư viện khẩu phần ở chip bên cạnh vẫn dùng bình thường.'
+          : 'Bảng có 722 món theo Thông tư 30/2026/TT-BYT, tải một lần rồi lưu trên máy.') + '</div>'
+    : ST.libError && !ST.customFoods.length
       ? '<div class="empty-state"><b>Chưa tải được thư viện món</b>' +
         'Thư viện dựng sẵn cần mở app qua http/https (bản Vercel hoặc local server). Bạn vẫn thêm được món tự khai báo để ghi bữa.' +
         '<div style="margin-top:10px"><button class="btn sm" type="button" onclick="openCustomFood(null,true)">Thêm món tự khai báo</button></div></div>'
@@ -858,7 +908,10 @@ function renderPickerBody() {
       if (f.group !== cur) { cur = f.group; head = '<div class="group-label">' + esc(GROUP_LABEL[f.group] || 'Khác') + '</div>'; }
       return head + '<div class="pick-row" onclick="' + pickCall(f.id) + '">' +
         '<div class="entry-main"><div class="entry-name">' + esc(f.name) + '</div>' +
-        '<div class="entry-sub">' + esc(f.unit) + (f.refGrams ? ' · ' + f.refGrams + 'g' : '') + ' · Đ' + fmt1(f.protein) + ' C' + fmt1(f.carb) + ' B' + fmt1(f.fat) + (f.custom ? ' · món của bạn' : '') + '</div></div>' +
+        '<div class="entry-sub">' + (f.source === 'tt30'
+            ? 'TT30/2026 · 100 g' + (f.est ? ' (≈)' : '')
+            : esc(f.unit) + (f.refGrams ? ' · ' + f.refGrams + 'g' : '')) +
+          ' · Đ' + fmt1(f.protein) + ' C' + fmt1(f.carb) + ' B' + fmt1(f.fat) + (f.custom ? ' · món của bạn' : '') + '</div></div>' +
         '<div class="pick-kcal">' + fmtInt(f.kcal) + '</div>' +
         '<button class="icon-btn' + (isFav(f.id) ? ' accent' : '') + '" type="button" title="' + (isFav(f.id) ? 'Bỏ yêu thích' : 'Đánh dấu yêu thích') + '" onclick="event.stopPropagation();toggleFav(\'' + esc(f.id) + '\')">' +
           (isFav(f.id) ? IC.starOn : IC.star) + '</button>' +
@@ -866,7 +919,7 @@ function renderPickerBody() {
       '</div>';
     }).join('');
   }
-  body.innerHTML = filterRow + quickRow + listHtml;
+  body.innerHTML = srcRow + filterRow + quickRow + listHtml;
 }
 
 /* ---------- Sheet khẩu phần (thêm / sửa mục) ---------- */
